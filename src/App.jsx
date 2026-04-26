@@ -47,11 +47,11 @@ function App() {
           {isAuthenticated && (
             <footer className="bg-white border-t border-gray-200 py-3 px-8 flex justify-between items-center">
               <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                SISTEMA FISCALIZA - VERSÃO 1.1
+                FISCALIZA - V.1.1
               </div>
               
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold text-gray-400 uppercase">© 2026 RAZGO TECNOLOGIA.</span>
+                
                 <a 
                   href="https://razgo.com.br/" 
                   target="_blank" 

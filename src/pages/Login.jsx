@@ -13,33 +13,30 @@ const Login = ({ setIsAuthenticated }) => {
 
   const handleLogin = (e) => {
     e.preventDefault();
-
-    // CREDENCIAIS DEFINIDAS POR VOCÊ
-    const ADMIN_EMAIL = "marcio@razgo.com.br";
-    const ADMIN_PASS = "mamst1ns";
+    const ADMIN_EMAIL = "suporte@razgo.com.br";
+    const ADMIN_PASS = "123";
 
     if (email === ADMIN_EMAIL && password === ADMIN_PASS) {
       setIsAuthenticated(true);
-      navigate("/"); // Redireciona para o Dashboard
+      navigate("/");
     } else {
       alert("Acesso Negado: Credenciais de Administrador incorretas.");
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
+    /* 1. Adicionada a imagem de fundo aqui via style */
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: "url('/tela.jpg')" }}
+    >
       
-      {/* Elementos Decorativos de Fundo */}
-      <div className="absolute inset-0 opacity-20 pointer-events-none">
-        <div className="absolute top-0 left-0 w-full h-full" style={{ 
-          backgroundImage: 'radial-gradient(#1e293b 1px, transparent 1px)', 
-          backgroundSize: '40px 40px' 
-        }}></div>
-      </div>
+      {/* 2. Overlay para escurecer um pouco a imagem e dar destaque ao card */}
+      <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] pointer-events-none"></div>
 
       <div className="max-w-md w-full relative">
         {/* Card de Login */}
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden border border-white/20">
           
           {/* Cabeçalho do Card */}
           <div className="bg-emerald-700 p-8 text-center">
@@ -47,7 +44,7 @@ const Login = ({ setIsAuthenticated }) => {
               <ShieldCheckIcon className="h-10 w-10 text-white" />
             </div>
             <h1 className="text-2xl font-black text-white uppercase tracking-tighter">
-              SISTEMA FISCALIZA
+              FISCALIZA
             </h1>
             <p className="text-emerald-100 text-[10px] mt-2 font-medium uppercase tracking-[0.2em]">
               Gestão e Licenciamento Ambiental
@@ -67,8 +64,8 @@ const Login = ({ setIsAuthenticated }) => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl bg-slate-50 text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all outline-none"
-                  placeholder="marcio@razgo.com.br"
+                  className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl bg-slate-50/50 text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all outline-none"
+                  placeholder="seu-email@exemplo.com.br"
                 />
               </div>
             </div>
@@ -84,7 +81,7 @@ const Login = ({ setIsAuthenticated }) => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl bg-slate-50 text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all outline-none"
+                  className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl bg-slate-50/50 text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all outline-none"
                   placeholder="••••••••"
                 />
               </div>
@@ -98,8 +95,8 @@ const Login = ({ setIsAuthenticated }) => {
             </button>
           </form>
 
-          {/* Rodapé do Card com Link RAZGO */}
-          <div className="bg-slate-50 p-6 border-t border-slate-100 text-center">
+          {/* Rodapé do Card */}
+          <div className="bg-slate-50/80 p-6 border-t border-slate-100 text-center">
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">
               Desenvolvido por
             </p>
@@ -119,9 +116,9 @@ const Login = ({ setIsAuthenticated }) => {
           </div>
         </div>
 
-        {/* Informação Legal de Rodapé */}
-        <p className="text-center mt-8 text-slate-500 text-[10px] font-medium uppercase tracking-tighter">
-        © 2026 RAZGO TECNOLOGIA. Todos os direitos reservados.
+        {/* Informação Legal - Cor alterada para branco para melhor leitura sobre a imagem */}
+        <p className="text-center mt-8 text-white/70 text-[10px] font-medium uppercase tracking-tighter">
+          <span className="text-emerald-400 font-bold">© 2026 RAZGO TECNOLOGIA</span> | Todos os direitos reservados.
         </p>
       </div>
     </div>
