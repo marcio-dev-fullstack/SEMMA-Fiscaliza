@@ -28,7 +28,7 @@ const Login = ({ setIsAuthenticated }) => {
     /* 1. Adicionada a imagem de fundo aqui via style */
     <div 
       className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: "url('/tela.jpg')" }}
+      style={{ backgroundImage: "url('/tela2.png')" }}
     >
       
       {/* 2. Overlay para escurecer um pouco a imagem e dar destaque ao card */}
@@ -98,7 +98,7 @@ const Login = ({ setIsAuthenticated }) => {
           {/* Rodapé do Card */}
           <div className="bg-slate-50/80 p-6 border-t border-slate-100 text-center">
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">
-              Desenvolvido por
+              Desenvolvido por:
             </p>
             <a 
               href="https://razgo.com.br/" 
@@ -109,8 +109,8 @@ const Login = ({ setIsAuthenticated }) => {
               <p className="text-sm font-black text-slate-800 group-hover:text-emerald-700 transition-colors uppercase tracking-tighter">
                 RAZGO <span className="text-emerald-600">TECNOLOGIA</span>
               </p>
-              <p className="text-[9px] text-slate-400 font-medium group-hover:text-slate-600">
-                www.razgo.com.br
+              <p className="text-[12px] text-slate-400 font-medium group-hover:text-slate-600">
+                (62) 99646-6033
               </p>
             </a>
           </div>
