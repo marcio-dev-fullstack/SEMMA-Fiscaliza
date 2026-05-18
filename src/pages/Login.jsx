@@ -13,7 +13,13 @@ const Login = ({ setIsAuthenticated }) => {
 
   const handleLogin = (e) => {
     e.preventDefault();
+<<<<<<< HEAD
     const ADMIN_EMAIL = "suporte@razgo.com.br";
+=======
+
+    // CREDENCIAIS DEFINIDAS POR VOCÊ
+    const ADMIN_EMAIL = "marcio@razgo.com.br";
+>>>>>>> 260debc3eb025df6c6fe2ecdb31a2e6252b761c4
     const ADMIN_PASS = "123";
 
     if (email === ADMIN_EMAIL && password === ADMIN_PASS) {
@@ -64,8 +70,13 @@ const Login = ({ setIsAuthenticated }) => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+<<<<<<< HEAD
                   className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl bg-slate-50/50 text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all outline-none"
                   placeholder="seu-email@exemplo.com.br"
+=======
+                  className="block w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl bg-slate-50 text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all outline-none"
+                  placeholder="analista@sema.com.br"
+>>>>>>> 260debc3eb025df6c6fe2ecdb31a2e6252b761c4
                 />
               </div>
             </div>
