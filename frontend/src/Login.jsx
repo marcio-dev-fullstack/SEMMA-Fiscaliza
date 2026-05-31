@@ -4,27 +4,37 @@ export default function Login({ onLoginSuccess }) {
   const [email, setEmail] = useState('cda.marcio@gmail.com');
   const [senha, setSenha] = useState('********');
   const [erro, setErro] = useState('');
+  const [carregando, setCarregando] = useState(false);
 
-  const gerenciarSubmissao = (e) => {
+  const gerenciarSubmissao = async (e) => {
     e.preventDefault();
     setErro('');
+    setCarregando(true);
 
-    // Validação local em conformidade com o script de sementes (seed.py)
-    if (email === 'cda.marcio@gmail.com' || email === 'cdasumma.marcio@gmail.com') {
-      const dadosUsuario = {
-        id: 1,
-        nome: 'Márcio Rodrigues',
-        perfil: 'Administrador',
-        email: email
-      };
-      
-      localStorage.setItem('usuario_logado', JSON.stringify(dadosUsuario));
-      
-      if (onLoginSuccess) {
-        onLoginSuccess(dadosUsuario);
+    try {
+      const resposta = await fetch('http://127.0.0.1:8000/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, password: senha })
+      });
+
+      const dados = await resposta.json();
+
+      if (resposta.ok) {
+        // Armazena o token JWT real e os dados do usuário para conformidade
+        localStorage.setItem('access_token', dados.access_token);
+        localStorage.setItem('usuario_logado', JSON.stringify(dados.usuario));
+        
+        if (onLoginSuccess) {
+          onLoginSuccess(dados.usuario);
+        }
+      } else {
+        setErro(dados.detail || 'Falha na autenticação regulatória municipal.');
       }
-    } else {
-      setErro('Credenciais inválidas. Verifique o e-mail e a senha de acesso.');
+    } catch (err) {
+      setErro('Impossível conectar com a API de segurança do FastAPI.');
+    } finally {
+      setCarregando(false);
     }
   };
 
@@ -49,7 +59,8 @@ export default function Login({ onLoginSuccess }) {
               <input
                 type="email"
                 required
-                className="appearance-none rounded-lg relative block w-full px-3 py-2.5 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                disabled={carregando}
+                className="appearance-none rounded-lg relative block w-full px-3 py-2.5 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm disabled:bg-gray-100"
                 placeholder="nome.sobrenome@municipio.gov"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -62,7 +73,8 @@ export default function Login({ onLoginSuccess }) {
               <input
                 type="password"
                 required
-                className="appearance-none rounded-lg relative block w-full px-3 py-2.5 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+                disabled={carregando}
+                className="appearance-none rounded-lg relative block w-full px-3 py-2.5 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm disabled:bg-gray-100"
                 placeholder="••••••••"
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
@@ -79,9 +91,10 @@ export default function Login({ onLoginSuccess }) {
           <div>
             <button
               type="submit"
-              className="w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all shadow-md"
+              disabled={carregando}
+              className="w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all shadow-md disabled:bg-gray-400"
             >
-              Entrar no Sistema
+              {carregando ? 'Validando Assinatura...' : 'Entrar no Sistema'}
             </button>
           </div>
         </form>
