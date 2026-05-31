@@ -1,8 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vitejs.dev/config/
+// Configuração robusta com esvaziamento de cache de build para homologação local
 export default defineConfig({
   plugins: [react()],
-  base: '/', 
+  base: '/',
+  build: {
+    emptyOutDir: true,
+    manifest: true
+  }
 })

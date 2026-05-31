@@ -9,7 +9,7 @@ export default function Login({ onLoginSuccess }) {
     e.preventDefault();
     setErro('');
 
-    // Validação local alinhada com os dados inseridos pelo script de sementes (seed.py)
+    // Validação local em conformidade com o script de sementes (seed.py)
     if (email === 'cda.marcio@gmail.com' || email === 'cdasumma.marcio@gmail.com') {
       const dadosUsuario = {
         id: 1,
@@ -18,7 +18,6 @@ export default function Login({ onLoginSuccess }) {
         email: email
       };
       
-      // Armazena a sessão para manter a conformidade e integridade dos logs
       localStorage.setItem('usuario_logado', JSON.stringify(dadosUsuario));
       
       if (onLoginSuccess) {
