@@ -3,10 +3,11 @@ import Login from './Login';
 
 export default function App() {
   const [usuario, setUsuario] = useState(null);
-  const [telaAtual, setTelaAtual] = useState('painel'); // 'painel' ou 'emitir_licenca'
+  const [telaAtual, setTelaAtual] = useState('painel'); // 'painel', 'emitir_licenca', 'listar_empresas'
+  const [empresas, setEmpresas] = useState([]);
   
   // Estados do Formulário de Emissão
-  const [empresaId, setEmpresaId] = useState('1'); // Padrão: Lava-Jato Daiane (ID 1 do Seed)
+  const [empresaId, setEmpresaId] = useState('');
   const [tipoLicenca, setTipoLicenca] = useState('LP');
   const [numeroProcesso, setNumeroProcesso] = useState('');
   const [diasValidade, setDiasValidade] = useState('365');
@@ -15,12 +16,29 @@ export default function App() {
   const [mensagemErro, setMensagemErro] = useState('');
   const [carregando, setCarregando] = useState(false);
 
+  // Carrega a sessão e busca as empresas na API
   useEffect(() => {
     const sessaoSalva = localStorage.getItem('usuario_logado');
     if (sessaoSalva) {
       setUsuario(JSON.parse(sessaoSalva));
     }
+    buscarEmpresas();
   }, []);
+
+  const buscarEmpresas = async () => {
+    try {
+      const resposta = await fetch('http://127.0.0.1:8000/empresas');
+      if (resposta.ok) {
+        const dados = await resposta.json();
+        setEmpresas(dados);
+        if (dados.length > 0) {
+          setEmpresaId(dados[0].id.toString()); // Inicializa o select com a primeira empresa
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao buscar empresas da API:", err);
+    }
+  };
 
   const deslogarSistema = () => {
     localStorage.removeItem('usuario_logado');
@@ -57,7 +75,6 @@ export default function App() {
         setNumeroProcesso('');
         setConteudoTecnico('');
         
-        // Abre automaticamente o PDF gerado pelo ReportLab do Backend em nova aba
         window.open(`http://127.0.0.1:8000/licencas/${dados.licenca_id}/pdf`, '_blank');
       } else {
         setMensagemErro(dados.detail || 'Erro ao processar emissão regulatória.');
@@ -99,7 +116,8 @@ export default function App() {
 
       {/* Renderização Condicional de Telas */}
       <main className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-        {telaAtual === 'painel' ? (
+        
+        {telaAtual === 'painel' && (
           /* TELA 01: PAINEL PRINCIPAL */
           <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200">
             <div className="border-b border-gray-100 pb-5 mb-6">
@@ -108,7 +126,7 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Card 01 - Direciona para o formulário */}
+              {/* Card 01 - Emitir Licença */}
               <div className="border border-gray-200 rounded-xl p-6 hover:border-green-600 hover:shadow-md transition-all bg-gray-50 flex flex-col justify-between">
                 <div>
                   <h3 className="font-extrabold text-lg text-gray-800 mb-2">Emitir Licença Ambiental</h3>
@@ -122,26 +140,33 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Card 02 - Empresas Cadastradas (Fictício) */}
+              {/* Card 02 - Empresas Cadastradas Nativas */}
               <div className="border border-gray-200 rounded-xl p-6 hover:border-green-600 hover:shadow-md transition-all bg-gray-50 flex flex-col justify-between">
                 <div>
                   <h3 className="font-extrabold text-lg text-gray-800 mb-2">Empresas Cadastradas</h3>
-                  <p className="text-sm text-gray-500 mb-4 leading-relaxed">Consulte a situação cadastral, CNPJs ativos e histórico de vistorias das empresas locais.</p>
+                  <p className="text-sm text-gray-500 mb-4 leading-relaxed">Consulte a situação cadastral, CNPJs ativos e histórico de vistorias das empresas locais no banco.</p>
                 </div>
-                <span className="text-xs font-bold text-gray-400 cursor-not-allowed">Consultar Empresas &rarr;</span>
+                <button 
+                  onClick={() => setTelaAtual('listar_empresas')}
+                  className="text-xs font-bold text-left text-green-600 hover:text-green-700 focus:outline-none"
+                >
+                  Consultar Empresas &rarr;
+                </button>
               </div>
 
-              {/* Card 03 - Logs de Auditoria (Fictício) */}
+              {/* Card 03 - Logs de Auditoria */}
               <div className="border border-gray-200 rounded-xl p-6 hover:border-green-600 hover:shadow-md transition-all bg-gray-50 flex flex-col justify-between">
                 <div>
                   <h3 className="font-extrabold text-lg text-gray-800 mb-2">Logs de Auditoria (RBAC)</h3>
                   <p className="text-sm text-gray-500 mb-4 leading-relaxed">Trilha imutável de segurança jurídica registrando ações executadas pelos analistas.</p>
                 </div>
-                <span className="text-xs font-bold text-gray-400 cursor-not-allowed">Exibir Logs &rarr;</span>
+                <span className="text-xs font-bold text-gray-400 cursor-not-allowed">Exibir Logs (Em breve) &rarr;</span>
               </div>
             </div>
           </div>
-        ) : (
+        )}
+
+        {telaAtual === 'emitir_licenca' && (
           /* TELA 02: FORMULÁRIO DE EMISSÃO REGULATÓRIA */
           <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200 max-w-2xl mx-auto">
             <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
@@ -164,11 +189,11 @@ export default function App() {
                   <select 
                     value={empresaId} 
                     onChange={(e) => setEmpresaId(e.target.value)}
-                    className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none"
+                    className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-0"
                   >
-                    <option value="1">Lava-Jato Daiane EIRELI (ID 1)</option>
-                    <option value="2">Madeireira Tocantins Ltda (ID 2)</option>
-                    <option value="3">Posto Rio Araguaia S.A. (ID 3)</option>
+                    {empresas.map((emp) => (
+                      <option key={emp.id} value={emp.id}>{emp.razao_social} (ID {emp.id})</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -176,7 +201,7 @@ export default function App() {
                   <select 
                     value={tipoLicenca} 
                     onChange={(e) => setTipoLicenca(e.target.value)}
-                    className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none"
+                    className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-0"
                   >
                     <option value="LP">LP - Licença Prévia</option>
                     <option value="LI">LI - Licença de Instalação</option>
@@ -234,6 +259,51 @@ export default function App() {
             </form>
           </div>
         )}
+
+        {telaAtual === 'listar_empresas' && (
+          /* TELA 03: TABELA DE VISUALIZAÇÃO DE EMPRESAS NATIVAS */
+          <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">Empresas Monitoradas Municipais</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Relação de CNPJs cadastrados na base de dados estruturada</p>
+              </div>
+              <button 
+                onClick={() => setTelaAtual('painel')}
+                className="text-xs font-bold text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 transition-colors"
+              >
+                &larr; Voltar
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 text-sm">
+                <thead className="bg-gray-50 font-bold text-gray-700 uppercase text-xs tracking-wider">
+                  <tr>
+                    <th className="px-6 py-3 text-left">ID</th>
+                    <th className="px-6 py-3 text-left">Razão Social</th>
+                    <th className="px-6 py-3 text-left">CNPJ Regulatório</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white text-gray-600">
+                  {empresas.map((emp) => (
+                    <tr key={emp.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 font-mono font-bold text-green-700">{emp.id}</td>
+                      <td className="px-6 py-4 font-semibold text-gray-800">{emp.razao_social}</td>
+                      <td className="px-6 py-4 font-mono">{emp.cnpj}</td>
+                    </tr>
+                  ))}
+                  {empresas.length === 0 && (
+                    <tr>
+                      <td colSpan="3" className="px-6 py-10 text-center text-gray-400 font-medium">Nenhuma empresa encontrada na base física de dados.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
       </main>
 
       {/* Rodapé */}

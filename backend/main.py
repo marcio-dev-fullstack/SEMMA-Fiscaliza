@@ -60,6 +60,17 @@ def verificar_licenca_software(conn = Depends(get_db)):
 
 # --- ROTAS DA API ---
 
+@app.get("/empresas")
+@app.get("/empresas/")
+def listar_empresas(conn = Depends(get_db)):
+    """Rota para buscar todas as empresas cadastradas no banco municipal."""
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT id, razao_social, cnpj FROM empresas ORDER BY razao_social ASC;")
+        return cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/licencas/emitir")
 @app.post("/licencas/emitir/")
 def emitir_licenca(licenca: LicencaSchema, conn = Depends(get_db), dependencies=[Depends(verificar_licenca_software)]):
@@ -149,7 +160,6 @@ def gerar_pdf_licenca(licenca_id: int, conn = Depends(get_db)):
 FRONTEND_DIST = "C:\\PROJETOS\\SEMMA-Fiscaliza\\frontend\\dist"
 ASSETS_DIR = "C:\\PROJETOS\\SEMMA-Fiscaliza\\frontend\\dist\\assets"
 
-# Força o montagem dos arquivos com cabeçalhos de controle de cache desativados para homologação local
 app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
 
 @app.get("/")
