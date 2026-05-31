@@ -154,19 +154,18 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_DIST = os.path.join(BASE_DIR, "frontend", "dist")
 
 if os.path.exists(FRONTEND_DIST):
-    # Rota raiz devolve o index.html principal do frontend
+    # Força o montagem da rota física de assets ANTES de qualquer definição de rota de página
+    app.mount("/assets", StaticFiles(directory=os.path.join(FRONTEND_DIST, "assets")), name="assets")
+
+    # Servidor da rota raiz entrega o index.html limpo
     @app.get("/")
     def servir_index():
         return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
 
-    # Mapeia dinamicamente os arquivos físicos locais de CSS/JS para responder na mesma pasta
-    app.mount("/assets", StaticFiles(directory=os.path.join(FRONTEND_DIST, "assets")), name="assets")
-    # Mapeia também os assets na pasta raiz do build caso necessário
-    app.mount("/", StaticFiles(directory=FRONTEND_DIST), name="root_static")
-
+    # Captura rotas de recarregamento e evita interceptar os assets do Vite
     @app.get("/{full_path:path}")
     def responder_rotas_react(full_path: str):
-        if full_path.startswith("licencas") or full_path in ["docs", "openapi.json"]:
+        if full_path.startswith("assets") or full_path.startswith("licencas") or full_path in ["docs", "openapi.json"]:
             raise HTTPException(status_code=404)
         return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
 else:
