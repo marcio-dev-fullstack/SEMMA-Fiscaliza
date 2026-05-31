@@ -16,7 +16,8 @@ import {
   QrCode,
   Zap,
   Printer,
-  FileCheck
+  FileCheck,
+  UserCheck
 } from 'lucide-react';
 
 // --- CARD DE MÉTRICA EMPRESARIAL ---
@@ -64,6 +65,12 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [printingId, setPrintingId] = useState(null);
 
+  // --- DADOS DO USUÁRIO LOGADO (MÓDULO DE GESTÃO DE SERVIDORES) ---
+  const [currentUser] = useState({
+    name: 'Márcio Rodrigues de Oliveira',
+    role: 'Engenheiro Civil / Fiscal Municipal'
+  });
+
   const triggerRefresh = () => {
     setIsRefreshing(true);
     setTimeout(() => setIsRefreshing(false), 800);
@@ -74,14 +81,14 @@ export default function App() {
     setTimeout(() => setPrintingId(null), 1200);
   };
 
-  // --- MÓDULO: CADASTRO DE EMPRESAS (RESERVADO PARA A ABA ESPECÍFICA) ---
+  // --- MÓDULO: CADASTRO DE EMPRESAS ---
   const [companies] = useState([
     { id: 'EMP-041', name: 'Mineração Vale do Araguaia', sector: 'Industrial', status: 'Regular', doc: 'LO' },
     { id: 'EMP-042', name: 'Lava-Jato Daiane', sector: 'Serviços / Comercial', status: 'Notificado', doc: 'LO' },
     { id: 'EMP-043', name: 'Madeireira Progresso Regional', sector: 'Florestal', status: 'Irregular', doc: 'LI' },
   ]);
 
-  // --- MÓDULO EXCLUSIVO DA DASHBOARD: LICENCIAMENTO AUTOMATIZADO (LP, LI, LO) ---
+  // --- MÓDULO: LICENCIAMENTO AUTOMATIZADO (LP, LI, LO) ---
   const [licenses] = useState([
     { id: 'LIC-LO-2026', company: 'Lava-Jato Daiane', type: 'LO (Operação)', status: 'Emitido', token: 'QR-A48B', color: 'text-emerald-700 border-emerald-200 bg-emerald-50' },
     { id: 'LIC-LI-2092', company: 'Construtora Leste PA', type: 'LI (Instalação)', status: 'Emitido', token: 'QR-F92C', color: 'text-blue-700 border-blue-200 bg-blue-50' },
@@ -111,6 +118,17 @@ export default function App() {
             <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-slate-400 hover:text-white">
               <X size={18} />
             </button>
+          </div>
+
+          {/* Perfil Simplificado na Sidebar */}
+          <div className="p-4 mx-3 mt-4 bg-slate-950/40 border border-slate-800 rounded-xl flex items-center gap-3">
+            <div className="p-2 bg-slate-800 text-blue-400 rounded-lg shrink-0">
+              <UserCheck size={16} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-slate-200 truncate">{currentUser.name}</p>
+              <p className="text-[10px] font-medium text-slate-400 truncate mt-0.5">{currentUser.role}</p>
+            </div>
           </div>
 
           {/* Menus de Navegação */}
@@ -159,12 +177,21 @@ export default function App() {
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-slate-500 hover:text-slate-800 lg:hidden">
               <Menu size={22} />
             </button>
-            <h2 className="text-base font-bold text-slate-800 tracking-tight">
-              {activeTab === 'dashboard' ? 'Atos Autorizativos Homologados' : 'Gestão de Cadastros Ambientais'}[cite: 1]
-            </h2>
+            <div>
+              <h2 className="text-base font-bold text-slate-800 tracking-tight">
+                {activeTab === 'dashboard' ? 'Atos Autorizativos Homologados' : 'Gestão de Cadastros Ambientais'}[cite: 1]
+              </h2>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          {/* Identificação e Pesquisa */}
+          <div className="flex items-center gap-6">
+            {/* Bloco do Usuário Ativo com Cargo na Topbar */}
+            <div className="hidden sm:flex flex-col text-right border-r border-slate-200 pr-4">
+              <span className="text-xs font-bold text-slate-800">{currentUser.name}</span>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">{currentUser.role}</span>
+            </div>
+
             <div className="relative hidden md:block">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                 <Search size={14} />
@@ -172,7 +199,7 @@ export default function App() {
               <input
                 type="text"
                 placeholder="Filtrar processos vigentes..."
-                className="w-64 pl-9 pr-4 py-1.5 bg-slate-100 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-700 placeholder-slate-400"
+                className="w-56 pl-9 pr-4 py-1.5 bg-slate-100 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-700 placeholder-slate-400"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -213,7 +240,7 @@ export default function App() {
                 <MetricCard title="Licença Operação (LO)" value="05" icon={Zap} change="Atividades Autorizadas" type="success" />
               </div>
 
-              {/* SEÇÃO DA DASHBOARD: FOCO TOTAL EM EMISSÃO DE DOCUMENTOS */}
+              {/* SEÇÃO DA DASHBOARD: MOTOR DE DOCUMENTOS */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-5 border-b border-slate-200 bg-slate-50/50">
                   <h3 className="font-bold text-sm text-slate-800 flex items-center gap-2">
