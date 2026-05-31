@@ -3,8 +3,9 @@ import Login from './Login';
 
 export default function App() {
   const [usuario, setUsuario] = useState(null);
-  const [telaAtual, setTelaAtual] = useState('painel'); // 'painel', 'emitir_licenca', 'listar_empresas'
+  const [telaAtual, setTelaAtual] = useState('painel'); // 'painel', 'emitir_licenca', 'listar_empresas', 'auditoria'
   const [empresas, setEmpresas] = useState([]);
+  const [logs, setLogs] = useState([]);
   
   // Estados do Formulário de Emissão
   const [empresaId, setEmpresaId] = useState('');
@@ -16,7 +17,6 @@ export default function App() {
   const [mensagemErro, setMensagemErro] = useState('');
   const [carregando, setCarregando] = useState(false);
 
-  // Carrega a sessão e busca as empresas na API
   useEffect(() => {
     const sessaoSalva = localStorage.getItem('usuario_logado');
     if (sessaoSalva) {
@@ -32,11 +32,24 @@ export default function App() {
         const dados = await resposta.json();
         setEmpresas(dados);
         if (dados.length > 0) {
-          setEmpresaId(dados[0].id.toString()); // Inicializa o select com a primeira empresa
+          setEmpresaId(dados[0].id.toString());
         }
       }
     } catch (err) {
-      console.error("Erro ao buscar empresas da API:", err);
+      console.error("Erro ao procurar empresas:", err);
+    }
+  };
+
+  const buscarLogsAuditoria = async () => {
+    try {
+      const resposta = await fetch('http://127.0.0.1:8000/auditoria');
+      if (resposta.ok) {
+        const dados = await resposta.json();
+        setLogs(dados);
+        setTelaAtual('auditoria');
+      }
+    } catch (err) {
+      console.error("Erro ao carregar logs de auditoria:", err);
     }
   };
 
@@ -71,7 +84,7 @@ export default function App() {
       const dados = await resposta.json();
 
       if (resposta.ok) {
-        setMensagemSucesso(`Licença emitida com sucesso! ID: ${dados.licenca_id}. Abrindo documento...`);
+        setMensagemSucesso(`Licença emitida com sucesso! ID: ${dados.licenca_id}. A abrir documento...`);
         setNumeroProcesso('');
         setConteudoTecnico('');
         
@@ -140,7 +153,7 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Card 02 - Empresas Cadastradas Nativas */}
+              {/* Card 02 - Empresas Cadastradas */}
               <div className="border border-gray-200 rounded-xl p-6 hover:border-green-600 hover:shadow-md transition-all bg-gray-50 flex flex-col justify-between">
                 <div>
                   <h3 className="font-extrabold text-lg text-gray-800 mb-2">Empresas Cadastradas</h3>
@@ -154,20 +167,25 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Card 03 - Logs de Auditoria */}
+              {/* Card 03 - Logs de Auditoria Real */}
               <div className="border border-gray-200 rounded-xl p-6 hover:border-green-600 hover:shadow-md transition-all bg-gray-50 flex flex-col justify-between">
                 <div>
                   <h3 className="font-extrabold text-lg text-gray-800 mb-2">Logs de Auditoria (RBAC)</h3>
                   <p className="text-sm text-gray-500 mb-4 leading-relaxed">Trilha imutável de segurança jurídica registrando ações executadas pelos analistas.</p>
                 </div>
-                <span className="text-xs font-bold text-gray-400 cursor-not-allowed">Exibir Logs (Em breve) &rarr;</span>
+                <button 
+                  onClick={buscarLogsAuditoria}
+                  className="text-xs font-bold text-left text-green-600 hover:text-green-700 focus:outline-none"
+                >
+                  Exibir Logs &rarr;
+                </button>
               </div>
             </div>
           </div>
         )}
 
         {telaAtual === 'emitir_licenca' && (
-          /* TELA 02: FORMULÁRIO DE EMISSÃO REGULATÓRIA */
+          /* TELA 02: FORMULÁRIO DE EMISSÃO */
           <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200 max-w-2xl mx-auto">
             <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
               <div>
@@ -189,7 +207,7 @@ export default function App() {
                   <select 
                     value={empresaId} 
                     onChange={(e) => setEmpresaId(e.target.value)}
-                    className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-0"
+                    className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none"
                   >
                     {empresas.map((emp) => (
                       <option key={emp.id} value={emp.id}>{emp.razao_social} (ID {emp.id})</option>
@@ -201,7 +219,7 @@ export default function App() {
                   <select 
                     value={tipoLicenca} 
                     onChange={(e) => setTipoLicenca(e.target.value)}
-                    className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none focus:ring-0"
+                    className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none"
                   >
                     <option value="LP">LP - Licença Prévia</option>
                     <option value="LI">LI - Licença de Instalação</option>
@@ -239,7 +257,7 @@ export default function App() {
                 <textarea 
                   rows="5" 
                   required
-                  placeholder="Injete aqui os laudos, condicionantes, restrições ambientais de escoamento e conformidades da instalação jurídica vistoriada..."
+                  placeholder="Injete aqui os laudos, condicionantes, restrições ambientais de escoamento..."
                   value={conteudoTecnico}
                   onChange={(e) => setConteudoTecnico(e.target.value)}
                   className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none font-mono"
@@ -261,7 +279,7 @@ export default function App() {
         )}
 
         {telaAtual === 'listar_empresas' && (
-          /* TELA 03: TABELA DE VISUALIZAÇÃO DE EMPRESAS NATIVAS */
+          /* TELA 03: TABELA DE VISUALIZAÇÃO DE EMPRESAS */
           <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200">
             <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
               <div>
@@ -293,9 +311,58 @@ export default function App() {
                       <td className="px-6 py-4 font-mono">{emp.cnpj}</td>
                     </tr>
                   ))}
-                  {empresas.length === 0 && (
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {telaAtual === 'auditoria' && (
+          /* TELA 04: TABELA DE CONTROLE DE AUDITORIA (NOVA) */
+          <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">Trilha Imutável de Auditoria (RBAC)</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Histórico completo de segurança regulatória do município</p>
+              </div>
+              <button 
+                onClick={() => setTelaAtual('painel')}
+                className="text-xs font-bold text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 transition-colors"
+              >
+                &larr; Voltar
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 text-sm">
+                <thead className="bg-gray-50 font-bold text-gray-700 uppercase text-xs tracking-wider">
+                  <tr>
+                    <th className="px-6 py-3 text-left">ID Log</th>
+                    <th className="px-6 py-3 text-left">Utilizador</th>
+                    <th className="px-6 py-3 text-left">Operação</th>
+                    <th className="px-6 py-3 text-left">Alvo Modificado</th>
+                    <th className="px-6 py-3 text-left">Data/Hora Registo</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white text-gray-600">
+                  {logs.map((log) => (
+                    <tr key={log.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 font-mono text-gray-400">#{log.id}</td>
+                      <td className="px-6 py-4 font-bold text-gray-800">{log.usuario}</td>
+                      <td className="px-6 py-4">
+                        <span className="inline-block px-2.5 py-1 rounded-full text-xs font-extrabold bg-blue-50 text-blue-700 border border-blue-100">
+                          {log.acao}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-xs font-semibold text-gray-500">
+                        {log.tabela_afetada} (Ref-ID: {log.registro_id})
+                      </td>
+                      <td className="px-6 py-4 font-mono text-xs">{new Date(log.data_registro).toLocaleString('pt-PT')}</td>
+                    </tr>
+                  ))}
+                  {logs.length === 0 && (
                     <tr>
-                      <td colSpan="3" className="px-6 py-10 text-center text-gray-400 font-medium">Nenhuma empresa encontrada na base física de dados.</td>
+                      <td colSpan="5" className="px-6 py-10 text-center text-gray-400 font-medium">Nenhuma operação registada até ao momento.</td>
                     </tr>
                   )}
                 </tbody>
