@@ -68,7 +68,7 @@ export default function App() {
   // --- DADOS DO USUÁRIO LOGADO (MÓDULO DE GESTÃO DE SERVIDORES) ---
   const [currentUser] = useState({
     name: 'Márcio Rodrigues de Oliveira',
-    role: 'Engenheiro Civil / Fiscal Municipal'
+    role: 'Civil Engineer / Fiscal Municipal'
   });
 
   const triggerRefresh = () => {
@@ -120,7 +120,7 @@ export default function App() {
             </button>
           </div>
 
-          {/* Perfil Simplificado na Sidebar */}
+          {/* Perfil de Identificação na Sidebar */}
           <div className="p-4 mx-3 mt-4 bg-slate-950/40 border border-slate-800 rounded-xl flex items-center gap-3">
             <div className="p-2 bg-slate-800 text-blue-400 rounded-lg shrink-0">
               <UserCheck size={16} />
