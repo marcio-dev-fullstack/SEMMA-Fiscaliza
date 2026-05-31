@@ -46,7 +46,7 @@ O sistema conta com um motor de geração de documentos dinâmicos para automati
 ## 🧑‍💻 Desenvolvedor
 
 **Márcio Rodrigues de Oliveira**
-*Engenheiro Civil (CREA 1522223070PA) & Engenheiro de Software*
+*Engenheiro Civil & Engenheiro de Software*
 
 ---
 
