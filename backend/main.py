@@ -6,7 +6,12 @@ from pydantic import BaseModel
 from datetime import datetime, timedelta
 import psycopg2
 from psycopg2.extras import RealDictCursor
+
+# Componentes avançados do ReportLab para PDFs dinâmicos com quebra de página
 from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, KeepTogether
 from reportlab.pdfgen import canvas
 import io
 import os
@@ -37,6 +42,8 @@ def get_db():
     finally:
         conn.close()
 
+# --- DTOs / SCHEMAS PYDANTIC ---
+
 class LicencaSchema(BaseModel):
     empresa_id: int
     tipo: str
@@ -44,6 +51,13 @@ class LicencaSchema(BaseModel):
     dias_validade: int
     conteudo_tecnico: str
     usuario_id: int
+
+class EmpresaSchema(BaseModel):
+    razao_social: str
+    cnpj: str
+    usuario_id: int
+
+# --- REGRAS DE NEGÓCIO ---
 
 def verificar_licenca_software(conn = Depends(get_db)):
     cursor = conn.cursor()
@@ -65,15 +79,42 @@ def verificar_licenca_software(conn = Depends(get_db)):
 def listar_empresas(conn = Depends(get_db)):
     cursor = conn.cursor()
     try:
-        cursor.execute("SELECT id, razao_social, cnpj FROM empresas ORDER BY razao_social ASC;")
+        cursor.execute("SELECT id, razao_social, cnpj FROM empresas ORDER BY id DESC;")
         return cursor.fetchall()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/empresas")
+@app.post("/empresas/")
+def cadastrar_empresa(empresa: EmpresaSchema, conn = Depends(get_db)):
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT id FROM empresas WHERE cnpj = %s;", (empresa.cnpj,))
+        if cursor.fetchone():
+            raise HTTPException(status_code=400, detail="Este CNPJ já está cadastrado no município.")
+            
+        cursor.execute(
+            "INSERT INTO empresas (razao_social, cnpj) VALUES (%s, %s) RETURNING id;",
+            (empresa.razao_social, empresa.cnpj)
+        )
+        empresa_id = cursor.fetchone()['id']
+        
+        cursor.execute(
+            "INSERT INTO logs_auditoria (usuario_id, acao, tabela_afetada, registro_id) VALUES (%s, %s, %s, %s);",
+            (empresa.usuario_id, "CADASTRO_EMPRESA", "empresas", empresa_id)
+        )
+        conn.commit()
+        return {"status": "Sucesso", "empresa_id": empresa_id}
+    except HTTPException as http_err:
+        conn.rollback()
+        raise http_err
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
 @app.get("/auditoria")
 @app.get("/auditoria/")
 def listar_logs_auditoria(conn = Depends(get_db)):
-    """Rota regulatória para auditar ações de utilizadores no sistema."""
     cursor = conn.cursor()
     try:
         cursor.execute("""
@@ -117,6 +158,73 @@ def emitir_licenca(licenca: LicencaSchema, conn = Depends(get_db), dependencies=
         conn.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
+# --- CANVAS CALLBACKS PARA IDENTIDADE VISUAL DO PDF ---
+
+def desenhar_elementos_decorativos(canvas_obj, doc, dados):
+    canvas_obj.saveState()
+    
+    # Bordas e Molduras Regulamentares
+    canvas_obj.setStrokeColor(colors.HexColor("#15803d")) # Verde Institucional
+    canvas_obj.setLineWidth(2)
+    canvas_obj.rect(36, 36, letter[0] - 72, letter[1] - 72)
+    
+    # Marca de Água Centralizada em Ângulo
+    canvas_obj.setFont("Helvetica-Bold", 42)
+    canvas_obj.setFillColorRGB(0.95, 0.95, 0.95)
+    canvas_obj.translate(letter[0]/2, letter[1]/2)
+    canvas_obj.rotate(45)
+    canvas_obj.drawCentredString(0, 0, "FISCALIZA AMBIENTAL")
+    
+    canvas_obj.restoreState()
+
+def cabecalho_e_rodape_primeira_pagina(canvas_obj, doc, dados):
+    desenhar_elementos_decorativos(canvas_obj, doc, dados)
+    canvas_obj.saveState()
+    
+    # Cabeçalho Principal Estilizado
+    canvas_obj.setFont("Helvetica-Bold", 14)
+    canvas_obj.setFillColor(colors.HexColor("#111827"))
+    canvas_obj.drawCentredString(letter[0]/2, 745, "SECRETARIA MUNICIPAL DE MEIO AMBIENTE")
+    
+    canvas_obj.setFont("Helvetica-Bold", 10)
+    canvas_obj.setFillColor(colors.HexColor("#15803d"))
+    canvas_obj.drawCentredString(letter[0]/2, 730, f"DOCUMENTO REGULATÓRIO — LICENÇA AMBIENTAL {dados['tipo']}")
+    
+    canvas_obj.setStrokeColor(colors.HexColor("#e5e7eb"))
+    canvas_obj.setLineWidth(1)
+    canvas_obj.line(54, 715, letter[0] - 54, 715)
+    
+    # Rodapé da Primeira Página com Chaves de Validação
+    canvas_obj.line(54, 110, letter[0] - 54, 110)
+    canvas_obj.setFont("Helvetica-Oblique", 8)
+    canvas_obj.setFillColor(colors.HexColor("#4b5563"))
+    canvas_obj.drawString(54, 95, f"Responsável Técnico de Emissão: {dados['emissor']}")
+    canvas_obj.setFont("Helvetica-Bold", 8)
+    canvas_obj.drawString(54, 82, f"Código de Autenticidade QR-ID: {dados['codigo_autenticidade_qr']}")
+    
+    canvas_obj.setFont("Helvetica", 8)
+    canvas_obj.drawRightString(letter[0] - 54, 95, f"Página {doc.page} de 1")
+    canvas_obj.restoreState()
+
+def cabecalho_e_rodape_paginas_seguintes(canvas_obj, doc, dados):
+    desenhar_elementos_decorativos(canvas_obj, doc, dados)
+    canvas_obj.saveState()
+    
+    # Cabeçalho Compacto para Páginas Secundárias
+    canvas_obj.setFont("Helvetica-Bold", 10)
+    canvas_obj.setFillColor(colors.HexColor("#4b5563"))
+    canvas_obj.drawString(54, 745, f"Licença Ambiental {dados['tipo']} — Proc: {dados['numero_processo']}")
+    canvas_obj.setStrokeColor(colors.HexColor("#e5e7eb"))
+    canvas_obj.line(54, 735, letter[0] - 54, 735)
+    
+    # Rodapé Padrão
+    canvas_obj.line(54, 90, letter[0] - 54, 90)
+    canvas_obj.setFont("Helvetica", 8)
+    canvas_obj.setFillColor(colors.HexColor("#4b5563"))
+    canvas_obj.drawString(54, 75, "Fiscaliza Ambiental - Sistema Municipal Integrado")
+    canvas_obj.drawRightString(letter[0] - 54, 75, f"Página {doc.page}")
+    canvas_obj.restoreState()
+
 @app.get("/licencas/{licenca_id}/pdf")
 def gerar_pdf_licenca(licenca_id: int, conn = Depends(get_db)):
     cursor = conn.cursor()
@@ -132,41 +240,81 @@ def gerar_pdf_licenca(licenca_id: int, conn = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Licença não localizada.")
 
     buffer = io.BytesIO()
-    p = canvas.Canvas(buffer, pagesize=letter)
-    p.setFont("Helvetica-Bold", 14)
-    p.drawCentredString(300, 750, "SECRETARIA MUNICIPAL DE MEIO AMBIENTE")
-    p.setFont("Helvetica", 11)
-    p.drawCentredString(300, 735, f"CHAVE DE CONTROLE REGULATÓRIO — LICENÇA AMBIENTAL {dados['tipo']}")
-    p.line(50, 720, 550, 720)
     
-    p.setFont("Helvetica-Bold", 10)
-    p.drawString(50, 690, f"Processo Administrativo: {dados['numero_processo']}")
-    p.drawString(50, 670, f"Razão Social: {dados['razao_social']}")
-    p.drawString(50, 650, f"CNPJ: {dados['cnpj']}")
-    p.drawString(50, 620, f"Vigência: {dados['data_emissao']} até {dados['data_vencimento']}")
+    # Instanciação do documento estruturado Platypus com margens regulamentares
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        leftMargin=54,
+        rightMargin=54,
+        topMargin=100,
+        bottomMargin=130
+    )
     
-    p.drawString(50, 590, "Parecer Técnico e Restrições:")
-    p.setFont("Helvetica", 10)
-    txt = p.beginText(50, 570)
-    txt.textLines(dados['conteudo_tecnico'])
-    p.drawText(txt)
+    styles = getSampleStyleSheet()
     
-    p.saveState()
-    p.setFont("Helvetica-Bold", 42)
-    p.setFillColorRGB(0.94, 0.94, 0.94)
-    p.translate(300, 400)
-    p.rotate(45)
-    p.drawCentredString(0, 0, "FISCALIZA AMBIENTAL")
-    p.restoreState()
+    # Definição de Estilos Tipográficos Avançados
+    estilo_titulo = ParagraphStyle(
+        'MetaTitulo',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=11,
+        leading=14,
+        textColor=colors.HexColor("#1f2937"),
+        spaceAfter=6
+    )
     
-    p.line(50, 130, 550, 130)
-    p.setFont("Helvetica-Oblique", 8)
-    p.drawString(50, 115, f"Responsável Técnico de Emissão: {dados['emissor']}")
-    p.setFont("Helvetica-Bold", 8)
-    p.drawString(50, 100, f"Código de Autenticidade QR-ID: {dados['codigo_autenticidade_qr']}")
+    estilo_conteudo = ParagraphStyle(
+        'MetaConteudo',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=10,
+        leading=14,
+        textColor=colors.HexColor("#4b5563")
+    )
     
-    p.showPage()
-    p.save()
+    estilo_parecer = ParagraphStyle(
+        'ParecerTecnico',
+        parent=styles['Normal'],
+        fontName='Courier',
+        fontSize=9,
+        leading=13,
+        textColor=colors.HexColor("#111827"),
+        spaceBefore=8
+    )
+
+    story = []
+    story.append(Spacer(1, 15))
+    
+    # Bloco Metadados Iniciais do Processo
+    dados_processo = [
+        f"<b>Nº Processo Administrativo:</b> {dados['numero_processo']}",
+        f"<b>Razão Social do Requerente:</b> {dados['razao_social']}",
+        f"<b>Inscrição CNPJ:</b> {dados['cnpj']}",
+        f"<b>Período Legal de Vigência:</b> {dados['data_emissao'].strftime('%d/%m/%Y')} até {dados['data_vencimento'].strftime('%d/%m/%Y')}"
+    ]
+    
+    for item in dados_processo:
+        story.append(Paragraph(item, estilo_titulo))
+    
+    story.append(Spacer(1, 20))
+    story.append(Paragraph("<b>PARECER TÉCNICO REGULATÓRIO E RESTRIÇÕES AMBIENTAIS:</b>", estilo_titulo))
+    story.append(Spacer(1, 5))
+    
+    # Processamento dinâmico do parecer de texto longo com tratamento de quebras de linha nativas (\n)
+    linhas_parecer = dados['conteudo_tecnico'].split('\n')
+    for linha in linhas_parecer:
+        if linha.strip():
+            story.append(Paragraph(linha, estilo_parecer))
+            story.append(Spacer(1, 4))
+            
+    # Construção do Documento amarrando os callbacks dinâmicos do Canvas
+    doc.build(
+        story,
+        onFirstPage=lambda canvas_obj, d: cabecalho_e_rodape_primeira_pagina(canvas_obj, d, dados),
+        onLaterPages=lambda canvas_obj, d: cabecalho_e_rodape_paginas_seguintes(canvas_obj, d, dados)
+    )
+    
     buffer.seek(0)
     return StreamingResponse(buffer, media_type="application/pdf")
 

@@ -3,7 +3,7 @@ import Login from './Login';
 
 export default function App() {
   const [usuario, setUsuario] = useState(null);
-  const [telaAtual, setTelaAtual] = useState('painel'); // 'painel', 'emitir_licenca', 'listar_empresas', 'auditoria'
+  const [telaAtual, setTelaAtual] = useState('painel'); // 'painel', 'emitir_licenca', 'listar_empresas', 'auditoria', 'nova_empresa'
   const [empresas, setEmpresas] = useState([]);
   const [logs, setLogs] = useState([]);
   
@@ -13,6 +13,12 @@ export default function App() {
   const [numeroProcesso, setNumeroProcesso] = useState('');
   const [diasValidade, setDiasValidade] = useState('365');
   const [conteudoTecnico, setConteudoTecnico] = useState('');
+  
+  // Estados do Formulário de Nova Empresa
+  const [novaRazao, setNovaRazao] = useState('');
+  const [novoCnpj, setNovoCnpj] = useState('');
+
+  // Estados de Notificação
   const [mensagemSucesso, setMensagemSucesso] = useState('');
   const [mensagemErro, setMensagemErro] = useState('');
   const [carregando, setCarregando] = useState(false);
@@ -36,7 +42,7 @@ export default function App() {
         }
       }
     } catch (err) {
-      console.error("Erro ao procurar empresas:", err);
+      console.error("Erro ao buscar empresas:", err);
     }
   };
 
@@ -49,7 +55,7 @@ export default function App() {
         setTelaAtual('auditoria');
       }
     } catch (err) {
-      console.error("Erro ao carregar logs de auditoria:", err);
+      console.error("Erro ao carregar logs:", err);
     }
   };
 
@@ -84,16 +90,51 @@ export default function App() {
       const dados = await resposta.json();
 
       if (resposta.ok) {
-        setMensagemSucesso(`Licença emitida com sucesso! ID: ${dados.licenca_id}. A abrir documento...`);
+        setMensagemSucesso(`Licença emitida com sucesso! ID: ${dados.licenca_id}. Abrindo documento...`);
         setNumeroProcesso('');
         setConteudoTecnico('');
-        
         window.open(`http://127.0.0.1:8000/licencas/${dados.licenca_id}/pdf`, '_blank');
       } else {
         setMensagemErro(dados.detail || 'Erro ao processar emissão regulatória.');
       }
     } catch (err) {
       setMensagemErro('Falha na comunicação com o servidor FastAPI.');
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  const gerenciarCadastroEmpresa = async (e) => {
+    e.preventDefault();
+    setMensagemSucesso('');
+    setMensagemErro('');
+    setCarregando(true);
+
+    const payload = {
+      razao_social: novaRazao,
+      cnpj: novoCnpj,
+      usuario_id: usuario.id
+    };
+
+    try {
+      const resposta = await fetch('http://127.0.0.1:8000/empresas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const dados = await resposta.json();
+
+      if (resposta.ok) {
+        setMensagemSucesso(`Empresa '${novaRazao}' cadastrada com sucesso na base municipal!`);
+        setNovaRazao('');
+        setNovoCnpj('');
+        await buscarEmpresas();
+      } else {
+        setMensagemErro(dados.detail || 'Erro ao salvar cadastro da empresa.');
+      }
+    } catch (err) {
+      setMensagemErro('Falha na conexão com a API de dados.');
     } finally {
       setCarregando(false);
     }
@@ -107,7 +148,7 @@ export default function App() {
     <div className="min-h-screen bg-gray-50 font-sans antialiased text-gray-900">
       {/* Barra de Navegação Superior */}
       <nav className="bg-green-700 text-white shadow-md px-6 py-4 flex justify-between items-center">
-        <div className="cursor-pointer" onClick={() => setTelaAtual('painel')}>
+        <div className="cursor-pointer" onClick={() => { setTelaAtual('painel'); setMensagemSucesso(''); setMensagemErro(''); }}>
           <h1 className="text-xl font-black tracking-tight uppercase">FISCALIZA AMBIENTAL</h1>
           <p className="text-xs text-green-100 font-medium">Painel Integrado de Controle Municipal</p>
         </div>
@@ -127,7 +168,6 @@ export default function App() {
         </div>
       </nav>
 
-      {/* Renderização Condicional de Telas */}
       <main className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
         
         {telaAtual === 'painel' && (
@@ -139,44 +179,32 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Card 01 - Emitir Licença */}
               <div className="border border-gray-200 rounded-xl p-6 hover:border-green-600 hover:shadow-md transition-all bg-gray-50 flex flex-col justify-between">
                 <div>
                   <h3 className="font-extrabold text-lg text-gray-800 mb-2">Emitir Licença Ambiental</h3>
                   <p className="text-sm text-gray-500 mb-4 leading-relaxed">Geração automática de minutas (LP, LI, LO) integradas com criptografia de QR Code imutável.</p>
                 </div>
-                <button 
-                  onClick={() => setTelaAtual('emitir_licenca')}
-                  className="text-xs font-bold text-left text-green-600 hover:text-green-700 focus:outline-none"
-                >
+                <button onClick={() => setTelaAtual('emitir_licenca')} className="text-xs font-bold text-left text-green-600 hover:text-green-700 focus:outline-none">
                   Acessar Módulo &rarr;
                 </button>
               </div>
 
-              {/* Card 02 - Empresas Cadastradas */}
               <div className="border border-gray-200 rounded-xl p-6 hover:border-green-600 hover:shadow-md transition-all bg-gray-50 flex flex-col justify-between">
                 <div>
                   <h3 className="font-extrabold text-lg text-gray-800 mb-2">Empresas Cadastradas</h3>
                   <p className="text-sm text-gray-500 mb-4 leading-relaxed">Consulte a situação cadastral, CNPJs ativos e histórico de vistorias das empresas locais no banco.</p>
                 </div>
-                <button 
-                  onClick={() => setTelaAtual('listar_empresas')}
-                  className="text-xs font-bold text-left text-green-600 hover:text-green-700 focus:outline-none"
-                >
+                <button onClick={() => { buscarEmpresas(); setTelaAtual('listar_empresas'); }} className="text-xs font-bold text-left text-green-600 hover:text-green-700 focus:outline-none">
                   Consultar Empresas &rarr;
                 </button>
               </div>
 
-              {/* Card 03 - Logs de Auditoria Real */}
               <div className="border border-gray-200 rounded-xl p-6 hover:border-green-600 hover:shadow-md transition-all bg-gray-50 flex flex-col justify-between">
                 <div>
                   <h3 className="font-extrabold text-lg text-gray-800 mb-2">Logs de Auditoria (RBAC)</h3>
                   <p className="text-sm text-gray-500 mb-4 leading-relaxed">Trilha imutável de segurança jurídica registrando ações executadas pelos analistas.</p>
                 </div>
-                <button 
-                  onClick={buscarLogsAuditoria}
-                  className="text-xs font-bold text-left text-green-600 hover:text-green-700 focus:outline-none"
-                >
+                <button onClick={buscarLogsAuditoria} className="text-xs font-bold text-left text-green-600 hover:text-green-700 focus:outline-none">
                   Exibir Logs &rarr;
                 </button>
               </div>
@@ -192,10 +220,7 @@ export default function App() {
                 <h2 className="text-xl font-bold text-gray-800">Nova Emissão de Licença Ambiental</h2>
                 <p className="text-xs text-gray-400 mt-0.5">Preencha os pareceres e os dados do processo regulatório</p>
               </div>
-              <button 
-                onClick={() => setTelaAtual('painel')}
-                className="text-xs font-bold text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 transition-colors"
-              >
+              <button onClick={() => { setTelaAtual('painel'); setMensagemSucesso(''); setMensagemErro(''); }} className="text-xs font-bold text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 transition-colors">
                 &larr; Voltar
               </button>
             </div>
@@ -204,11 +229,7 @@ export default function App() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Empresa Alvo</label>
-                  <select 
-                    value={empresaId} 
-                    onChange={(e) => setEmpresaId(e.target.value)}
-                    className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none"
-                  >
+                  <select value={empresaId} onChange={(e) => setEmpresaId(e.target.value)} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none">
                     {empresas.map((emp) => (
                       <option key={emp.id} value={emp.id}>{emp.razao_social} (ID {emp.id})</option>
                     ))}
@@ -216,11 +237,7 @@ export default function App() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Tipo de Licença</label>
-                  <select 
-                    value={tipoLicenca} 
-                    onChange={(e) => setTipoLicenca(e.target.value)}
-                    className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none"
-                  >
+                  <select value={tipoLicenca} onChange={(e) => setTipoLicenca(e.target.value)} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none">
                     <option value="LP">LP - Licença Prévia</option>
                     <option value="LI">LI - Licença de Instalação</option>
                     <option value="LO">LO - Licença de Operação</option>
@@ -231,47 +248,23 @@ export default function App() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Nº do Processo Administrativo</label>
-                  <input 
-                    type="text" 
-                    required 
-                    placeholder="Ex: 4572/2026-SEMMA"
-                    value={numeroProcesso}
-                    onChange={(e) => setNumeroProcesso(e.target.value)}
-                    className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none"
-                  />
+                  <input type="text" required placeholder="Ex: 4572/2026-SEMMA" value={numeroProcesso} onChange={(e) => setNumeroProcesso(e.target.value)} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none"/>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Prazo de Validade (Dias)</label>
-                  <input 
-                    type="number" 
-                    required 
-                    value={diasValidade}
-                    onChange={(e) => setDiasValidade(e.target.value)}
-                    className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none"
-                  />
+                  <input type="number" required value={diasValidade} onChange={(e) => setDiasValidade(e.target.value)} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none"/>
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Parecer Técnico e Restrições Obras/Operação</label>
-                <textarea 
-                  rows="5" 
-                  required
-                  placeholder="Injete aqui os laudos, condicionantes, restrições ambientais de escoamento..."
-                  value={conteudoTecnico}
-                  onChange={(e) => setConteudoTecnico(e.target.value)}
-                  className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none font-mono"
-                />
+                <textarea rows="6" required placeholder="Injete aqui os laudos, condicionantes, restrições..." value={conteudoTecnico} onChange={(e) => setConteudoTecnico(e.target.value)} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none font-mono"/>
               </div>
 
               {mensagemSucesso && <div className="text-green-700 text-xs font-semibold bg-green-50 p-3 rounded-lg border border-green-200 text-center">{mensagemSucesso}</div>}
               {mensagemErro && <div className="text-red-700 text-xs font-semibold bg-red-50 p-3 rounded-lg border border-red-200 text-center">{mensagemErro}</div>}
 
-              <button 
-                type="submit" 
-                disabled={carregando}
-                className="w-full py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-green-600 hover:bg-green-700 transition-all shadow-md disabled:bg-gray-400"
-              >
+              <button type="submit" disabled={carregando} className="w-full py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-green-600 hover:bg-green-700 transition-all shadow-md disabled:bg-gray-400">
                 {carregando ? 'Processando Validações e Emitindo...' : 'Concluir Emissão e Assinar Documento'}
               </button>
             </form>
@@ -286,12 +279,14 @@ export default function App() {
                 <h2 className="text-xl font-bold text-gray-800">Empresas Monitoradas Municipais</h2>
                 <p className="text-xs text-gray-400 mt-0.5">Relação de CNPJs cadastrados na base de dados estruturada</p>
               </div>
-              <button 
-                onClick={() => setTelaAtual('painel')}
-                className="text-xs font-bold text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 transition-colors"
-              >
-                &larr; Voltar
-              </button>
+              <div className="flex space-x-3">
+                <button onClick={() => { setTelaAtual('nova_empresa'); setMensagemSucesso(''); setMensagemErro(''); }} className="text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg px-3 py-1.5 transition-colors shadow-sm">
+                  + Cadastrar Empresa
+                </button>
+                <button onClick={() => { setTelaAtual('painel'); setMensagemSucesso(''); setMensagemErro(''); }} className="text-xs font-bold text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 transition-colors">
+                  &larr; Voltar
+                </button>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -317,18 +312,48 @@ export default function App() {
           </div>
         )}
 
+        {telaAtual === 'nova_empresa' && (
+          /* TELA 05: FORMULÁRIO DE CADASTRO DE NOVA EMPRESA */
+          <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200 max-w-md mx-auto">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">Inclusão Cadastral Municipal</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Registre um novo estabelecimento para monitoramento</p>
+              </div>
+              <button onClick={() => { setTelaAtual('listar_empresas'); setMensagemSucesso(''); setMensagemErro(''); }} className="text-xs font-bold text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 transition-colors">
+                &larr; Cancelar
+              </button>
+            </div>
+
+            <form onSubmit={gerenciarCadastroEmpresa} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Razão Social Corporativa</label>
+                <input type="text" required placeholder="Ex: Lava-Jato Daiane Ltda" value={novaRazao} onChange={(e) => setNovaRazao(e.target.value)} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none"/>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">CNPJ Oficial</label>
+                <input type="text" required placeholder="Ex: 00.000.000/0001-00" value={novoCnpj} onChange={(e) => setNovoCnpj(e.target.value)} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none"/>
+              </div>
+
+              {mensagemSucesso && <div className="text-green-700 text-xs font-semibold bg-green-50 p-3 rounded-lg border border-green-200 text-center">{mensagemSucesso}</div>}
+              {mensagemErro && <div className="text-red-700 text-xs font-semibold bg-red-50 p-3 rounded-lg border border-red-200 text-center">{mensagemErro}</div>}
+
+              <button type="submit" disabled={carregando} className="w-full py-2.5 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-green-600 hover:bg-green-700 transition-all shadow-md disabled:bg-gray-400">
+                {carregando ? 'Salvando no Banco...' : 'Confirmar Registro no Sistema'}
+              </button>
+            </form>
+          </div>
+        )}
+
         {telaAtual === 'auditoria' && (
-          /* TELA 04: TABELA DE CONTROLE DE AUDITORIA (NOVA) */
+          /* TELA 04: TABELA DE CONTROLE DE AUDITORIA */
           <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200">
             <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
               <div>
                 <h2 className="text-xl font-bold text-gray-800">Trilha Imutável de Auditoria (RBAC)</h2>
                 <p className="text-xs text-gray-400 mt-0.5">Histórico completo de segurança regulatória do município</p>
               </div>
-              <button 
-                onClick={() => setTelaAtual('painel')}
-                className="text-xs font-bold text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 transition-colors"
-              >
+              <button onClick={() => { setTelaAtual('painel'); setMensagemSucesso(''); setMensagemErro(''); }} className="text-xs font-bold text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 transition-colors">
                 &larr; Voltar
               </button>
             </div>
@@ -360,11 +385,6 @@ export default function App() {
                       <td className="px-6 py-4 font-mono text-xs">{new Date(log.data_registro).toLocaleString('pt-PT')}</td>
                     </tr>
                   ))}
-                  {logs.length === 0 && (
-                    <tr>
-                      <td colSpan="5" className="px-6 py-10 text-center text-gray-400 font-medium">Nenhuma operação registada até ao momento.</td>
-                    </tr>
-                  )}
                 </tbody>
               </table>
             </div>
