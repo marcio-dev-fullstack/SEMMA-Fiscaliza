@@ -149,15 +149,15 @@ def gerar_pdf_licenca(licenca_id: int, conn = Depends(get_db)):
 FRONTEND_DIST = "C:\\PROJETOS\\SEMMA-Fiscaliza\\frontend\\dist"
 ASSETS_DIR = "C:\\PROJETOS\\SEMMA-Fiscaliza\\frontend\\dist\\assets"
 
-# Monta o diretório de arquivos estáticos de CSS e JS de forma explícita na raiz do servidor
+# Força o montagem dos arquivos com cabeçalhos de controle de cache desativados para homologação local
 app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
 
 @app.get("/")
 def servir_index():
-    return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
+    return FileResponse(os.path.join(FRONTEND_DIST, "index.html"), headers={"Cache-Control": "no-store"})
 
 @app.get("/{full_path:path}")
 def responder_rotas_react(full_path: str):
     if full_path.startswith("assets") or full_path.startswith("licencas") or full_path in ["docs", "openapi.json"]:
         raise HTTPException(status_code=404)
-    return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
+    return FileResponse(os.path.join(FRONTEND_DIST, "index.html"), headers={"Cache-Control": "no-store"})
