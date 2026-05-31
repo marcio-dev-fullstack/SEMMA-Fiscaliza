@@ -94,13 +94,12 @@ export default function App() {
 
   const handleCreateUserSubmit = (e) => {
     e.preventDefault();
-    alert(`Usuário ${newUser.name} cadastrado com sucesso com a regra de acesso: ${newUser.role}`);
+    alert(`Usuário ${newUser.name} cadastrado com sucesso com o nível de acesso: ${newUser.role}`);
     setNewUser({ name: '', role: 'FISCAL', email: '', password: '' });
   };
 
   const handleLoginSubmit = (e) => {
     e.preventDefault();
-    // Simulação básica de validação de acesso institucional
     setIsAuthenticated(true);
     setActiveTab('dashboard');
   };
@@ -252,7 +251,6 @@ export default function App() {
               <UserPlus size={16} /> Criar Novo Usuário
             </button>
 
-            {/* BOTÃO SAIR INTEGRADO DE FORMA DEFINITIVA */}
             <button 
               onClick={handleLogout}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-rose-400 hover:bg-rose-950/30 hover:text-rose-300 transition-colors pt-4 mt-2 border-t border-slate-800/60"
@@ -482,24 +480,21 @@ export default function App() {
                   />
                 </div>
 
+                {/* SELETOR DE NÍVEIS CORRIGIDO SEM SOBREPOSIÇÃO DE ÍCONE QUE BLOQUEIA O CLIQUE */}
                 <div>
                   <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Nível de Acesso no Sistema</label>
-                  <div className="relative">
-                    <select
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 appearance-none cursor-pointer"
-                      value={newUser.role}
-                      onChange={(e) => setNewUser({...newUser, role: e.target.value})}
-                    >
-                      <option value="ADMIN">USUÁRIO ADMIN — Controle total e acesso irrestrito a configurações</option>
-                      <option value="ANALISTA">USUÁRIO ANALISTA — Operação completa, exceto painel Admin e alteração de licenças emitidas</option>
-                      <option value="FISCAL">USUÁRIO FISCAL — Envio de fotos/vídeos e consulta restrita (sem deleção ou alteração)</option>
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
-                      <Shield size={16} />
-                    </div>
-                  </div>
+                  <select
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 cursor-pointer"
+                    value={newUser.role}
+                    onChange={(e) => setNewUser({...newUser, role: e.target.value})}
+                  >
+                    <option value="ADMIN">ADMIN — Possui controle irrestrito. Pode criar usuários, auditar logs e gerenciar todas as instâncias municipais.</option>
+                    <option value="ANALISTA">ANALISTA — Executa análises e pareceres técnicos de PCA. Não acessa a área administrativa nem altera documentos homologados pós-emissão.</option>
+                    <option value="FISCAL">FISCAL — Coleta evidências de campo (fotos/vídeos). Visualiza cadastros para fins de consulta legal, sem permissão de escrita ou deleção.</option>
+                  </select>
                   
-                  <div className="mt-3 bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2">
+                  {/* Quadro Auxiliar Informativo das Regras Institucionais */}
+                  <div className="mt-4 bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2">
                     <p className="text-[11px] text-slate-600">
                       <strong className="text-blue-600">ADMIN:</strong> Possui controle irrestrito. Pode criar usuários, auditar logs e gerenciar todas as instâncias municipais.
                     </p>
