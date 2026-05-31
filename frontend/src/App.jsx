@@ -20,7 +20,8 @@ import {
   UserCheck,
   UserPlus,
   Shield,
-  LogOut
+  LogOut,
+  LogIn
 } from 'lucide-react';
 
 // --- CARD DE MÉTRICA EMPRESARIAL ---
@@ -62,6 +63,10 @@ const MetricCard = ({ title, value, icon: Icon, change, type = 'default' }) => {
 };
 
 export default function App() {
+  // --- GERENCIAMENTO DE LOGOUT / LOGIN NO FRONTEND ---
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,7 +76,7 @@ export default function App() {
   // --- FORMULÁRIO DE NOVO USUÁRIO ---
   const [newUser, setNewUser] = useState({ name: '', role: 'FISCAL', email: '', password: '' });
 
-  // --- DADOS DO USUÁRIO LOGADO (MÓDULO DE GESTÃO DE SERVIDORES) ---
+  // --- DADOS DO USUÁRIO LOGADO ---
   const [currentUser] = useState({
     name: 'Márcio Rodrigues de Oliveira',
     role: 'Civil Engineer / Fiscal Municipal'
@@ -93,8 +98,15 @@ export default function App() {
     setNewUser({ name: '', role: 'FISCAL', email: '', password: '' });
   };
 
+  const handleLoginSubmit = (e) => {
+    e.preventDefault();
+    // Simulação básica de validação de acesso institucional
+    setIsAuthenticated(true);
+    setActiveTab('dashboard');
+  };
+
   const handleLogout = () => {
-    alert('Encerrando sessão com segurança jurídica. Até logo!');
+    setIsAuthenticated(false);
   };
 
   // --- MÓDULO: CADASTRO DE EMPRESAS ---
@@ -114,6 +126,70 @@ export default function App() {
   const filteredCompanies = companies.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const filteredLicenses = licenses.filter(l => l.company.toLowerCase().includes(searchTerm.toLowerCase()) || l.type.toLowerCase().includes(searchTerm.toLowerCase()));
 
+  // --- RENDERIZAÇÃO CONDICIONAL: TELA DE LOGIN ---
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-100 text-slate-800 flex items-center justify-center font-sans px-4">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full overflow-hidden">
+          <div className="p-6 bg-slate-900 border-b border-slate-800 flex items-center gap-3 text-white">
+            <div className="bg-blue-600 p-2 rounded-lg text-white">
+              <ShieldAlert size={20} />
+            </div>
+            <div>
+              <h1 className="font-bold text-base uppercase tracking-wider leading-none">Fiscaliza</h1>
+              <span className="text-[10px] text-slate-400 font-medium tracking-widest block mt-1">AMBIENTAL</span>
+            </div>
+          </div>
+          
+          <form onSubmit={handleLoginSubmit} className="p-6 space-y-4">
+            <div className="text-center pb-2">
+              <h3 className="text-lg font-bold text-slate-800">Autenticação Institucional</h3>
+              <p className="text-xs text-slate-500 mt-1">Insira as credenciais do seu usuário para acessar o painel municipal.</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">E-mail Corporativo</label>
+              <input 
+                type="email" 
+                required
+                placeholder="nome.sobrenome@municipio.gov.br"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800"
+                value={loginForm.email}
+                onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Senha de Acesso</label>
+              <input 
+                type="password" 
+                required
+                placeholder="••••••••"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800"
+                value={loginForm.password}
+                onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+              />
+            </div>
+
+            <button 
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs uppercase tracking-wider py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 mt-2"
+            >
+              <LogIn size={14} /> Entrar no Sistema
+            </button>
+          </form>
+
+          <div className="p-4 bg-slate-50 border-t border-slate-100 text-center">
+            <p className="text-[10px] font-mono tracking-widest text-slate-400 uppercase">
+              Desenvolvido por <span className="font-bold text-slate-500">RAZGO</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- RENDERIZAÇÃO PRINCIPAL: PLATAFORMA ---
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex font-sans selection:bg-blue-100 selection:text-blue-900">
       
@@ -176,7 +252,7 @@ export default function App() {
               <UserPlus size={16} /> Criar Novo Usuário
             </button>
 
-            {/* BOTÃO SAIR ADICIONADO AQUI */}
+            {/* BOTÃO SAIR INTEGRADO DE FORMA DEFINITIVA */}
             <button 
               onClick={handleLogout}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-rose-400 hover:bg-rose-950/30 hover:text-rose-300 transition-colors pt-4 mt-2 border-t border-slate-800/60"
