@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Configuration unificada para acoplamento estático no FastAPI
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: './' // Força caminhos relativos para os assets injetados pelo Python
+  // Define a base como vazia/relativa para que o HTML encontre o CSS/JS na pasta local informada pelo backend
+  base: './', 
 })

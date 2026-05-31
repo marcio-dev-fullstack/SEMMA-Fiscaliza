@@ -118,7 +118,7 @@ def gerar_pdf_licenca(licenca_id: int, conn = Depends(get_db)):
     p.line(50, 720, 550, 720)
     
     p.setFont("Helvetica-Bold", 10)
-    p.drawString(50, 690, f"Processo Administrative: {dados['numero_processo']}")
+    p.drawString(50, 690, f"Processo Administrativo: {dados['numero_processo']}")
     p.drawString(50, 670, f"Razão Social: {dados['razao_social']}")
     p.drawString(50, 650, f"CNPJ: {dados['cnpj']}")
     p.drawString(50, 620, f"Vigência: {dados['data_emissao']} até {dados['data_vencimento']}")
@@ -150,20 +150,20 @@ def gerar_pdf_licenca(licenca_id: int, conn = Depends(get_db)):
 
 # --- ACOPLAMENTO DO FRONTEND VIA SERVIDOR ESTÁTICO NATIVO ---
 
-# Descobre o caminho absoluto da pasta raiz do projeto de forma dinâmica
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_DIST = os.path.join(BASE_DIR, "frontend", "dist")
 
 if os.path.exists(FRONTEND_DIST):
-    # Correção do mapeamento de assets para o FastAPI ler a pasta física correta do frontend integrado
-    app.mount("/assets", StaticFiles(directory=os.path.join(FRONTEND_DIST, "assets")), name="assets")
-    
-    # Rota raiz devolve o index.html principal compilado pelo Vite
+    # Rota raiz devolve o index.html principal do frontend
     @app.get("/")
     def servir_index():
         return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
 
-    # Captura e resolve rotas internas do React Router no recarregamento (F5) sem quebrar o Swagger
+    # Mapeia dinamicamente os arquivos físicos locais de CSS/JS para responder na mesma pasta
+    app.mount("/assets", StaticFiles(directory=os.path.join(FRONTEND_DIST, "assets")), name="assets")
+    # Mapeia também os assets na pasta raiz do build caso necessário
+    app.mount("/", StaticFiles(directory=FRONTEND_DIST), name="root_static")
+
     @app.get("/{full_path:path}")
     def responder_rotas_react(full_path: str):
         if full_path.startswith("licencas") or full_path in ["docs", "openapi.json"]:
@@ -172,8 +172,4 @@ if os.path.exists(FRONTEND_DIST):
 else:
     @app.get("/")
     def aviso():
-        return {
-            "aviso": "Pasta 'dist' não encontrada no caminho configurado.",
-            "caminho_procurado": FRONTEND_DIST,
-            "dica": "Por favor, navegue até a pasta 'frontend' e execute 'npm run build' para compilar o HTML/CSS do sistema."
-        }
+        return {"aviso": "Pasta dist nao localizada no caminho esperado."}
