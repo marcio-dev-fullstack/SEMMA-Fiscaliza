@@ -13,7 +13,6 @@ import os
 
 app = FastAPI(title="Fiscaliza Ambiental", version="1.0.0")
 
-# Middleware de CORS para evitar qualquer trava de requisição cruzada
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,7 +22,6 @@ app.add_middleware(
     expose_headers=["*"]
 )
 
-# Gerenciador de conexão com a base de dados PostgreSQL
 def get_db():
     conn = psycopg2.connect(
         dbname="fiscaliza_db",
@@ -39,7 +37,6 @@ def get_db():
     finally:
         conn.close()
 
-# DTO / Schema para recebimento dos dados de emissão
 class LicencaSchema(BaseModel):
     empresa_id: int
     tipo: str
@@ -48,7 +45,6 @@ class LicencaSchema(BaseModel):
     conteudo_tecnico: str
     usuario_id: int
 
-# Regra de negócio para validação do trial comercial do sistema
 def verificar_licenca_software(conn = Depends(get_db)):
     cursor = conn.cursor()
     cursor.execute("SELECT data_instalacao, chave_ativacao, bloqueado FROM controle_sistema ORDER BY id DESC LIMIT 1;")
@@ -148,27 +144,20 @@ def gerar_pdf_licenca(licenca_id: int, conn = Depends(get_db)):
     buffer.seek(0)
     return StreamingResponse(buffer, media_type="application/pdf")
 
-# --- ACOPLAMENTO DO FRONTEND VIA SERVIDOR ESTÁTICO NATIVO ---
+# --- ACOPLAMENTO DO FRONTEND COM CAMINHOS ABSOLUTOS FIXOS ---
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FRONTEND_DIST = os.path.join(BASE_DIR, "frontend", "dist")
+FRONTEND_DIST = "C:\\PROJETOS\\SEMMA-Fiscaliza\\frontend\\dist"
+ASSETS_DIR = "C:\\PROJETOS\\SEMMA-Fiscaliza\\frontend\\dist\\assets"
 
-if os.path.exists(FRONTEND_DIST):
-    # Força o montagem da rota física de assets ANTES de qualquer definição de rota de página
-    app.mount("/assets", StaticFiles(directory=os.path.join(FRONTEND_DIST, "assets")), name="assets")
+# Monta o diretório de arquivos estáticos de CSS e JS de forma explícita na raiz do servidor
+app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
 
-    # Servidor da rota raiz entrega o index.html limpo
-    @app.get("/")
-    def servir_index():
-        return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
+@app.get("/")
+def servir_index():
+    return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
 
-    # Captura rotas de recarregamento e evita interceptar os assets do Vite
-    @app.get("/{full_path:path}")
-    def responder_rotas_react(full_path: str):
-        if full_path.startswith("assets") or full_path.startswith("licencas") or full_path in ["docs", "openapi.json"]:
-            raise HTTPException(status_code=404)
-        return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
-else:
-    @app.get("/")
-    def aviso():
-        return {"aviso": "Pasta dist nao localizada no caminho esperado."}
+@app.get("/{full_path:path}")
+def responder_rotas_react(full_path: str):
+    if full_path.startswith("assets") or full_path.startswith("licencas") or full_path in ["docs", "openapi.json"]:
+        raise HTTPException(status_code=404)
+    return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
