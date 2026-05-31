@@ -13,7 +13,7 @@ O **Fiscaliza Ambiental** é uma solução de alta integridade técnica desenvol
 
 ---
 
-## Módulos de Geração de PDF (Documentos Oficiais)
+## 📋 Módulos de Geração de PDF (Documentos Oficiais)
 O sistema conta com um motor de geração de documentos dinâmicos para automatizar a emissão de:
 
 * **Gestão de Servidores:** Geração de fichas cadastrais detalhadas e relatórios de produtividade/atividades dos fiscais municipais.
@@ -23,7 +23,7 @@ O sistema conta com um motor de geração de documentos dinâmicos para automati
 
 ---
 
-## Stack Tecnológica
+## 🛠️ Stack Tecnológica
 
 | Camada | Tecnologia | Descrição |
 | :--- | :--- | :--- |
@@ -35,7 +35,7 @@ O sistema conta com um motor de geração de documentos dinâmicos para automati
 
 ---
 
-## Objetivos e Funcionalidades
+## 🚀 Objetivos e Funcionalidades
 * **Automação Regulatória:** Cálculo nativo de prazos de validade para licenças.
 * **Integridade de Dados:** Bloqueio de edição em campos críticos após a emissão e logs imutáveis de auditoria vinculados ao ID do utilizador.
 * **Gestão RBAC:** Controle de acesso baseado em funções (Administrador, Analista, Fiscal e Empresa).
@@ -43,21 +43,24 @@ O sistema conta com um motor de geração de documentos dinâmicos para automati
 
 ---
 
-## Desenvolvedor
+## 🧑‍💻 Desenvolvedor
 
-Márcio Rodrigues de Oliveira
-Engenheiro de Software | Engenheiro Civil
+**Márcio Rodrigues de Oliveira**
+*Engenheiro Civil (CREA 1522223070PA) & Engenheiro de Software*
 
 ---
 
-## Licenciamento
+## 📄 Licenciamento
 
-1. **Modelo Comercial**
+### 1. Modelo Comercial
 Este software é distribuído sob um regime de licenciamento comercial, focado na segurança jurídica e integridade dos dados municipais.
 
-2. **Condições de Uso**
-1. **Trial Gratuito:** 180 dias de acesso total para avaliação.
-2. **Pós-Trial:** A renovação da licença é **obrigatória** para manter a funcionalidade de emissão de novos documentos oficiais (PDFs).
-3. **Restrição:** Após o prazo, o sistema entra em modo de consulta, bloqueando novas gerações de documentos até a regularização.
+### 2. Condições de Uso
+* **Trial Gratuito:** 180 dias de acesso total para avaliação.
+* **Pós-Trial:** A renovação da licença é **obrigatória** para manter a funcionalidade de emissão de novos documentos oficiais (PDFs).
+* **Restrição:** Após o prazo, o sistema entra em modo de consulta, bloqueando novas gerações de documentos até a regularização.
 
-
+---
+<p align="center">
+  <sub>Desenvolvido por <strong>RAZGO</strong></sub>
+</p>
