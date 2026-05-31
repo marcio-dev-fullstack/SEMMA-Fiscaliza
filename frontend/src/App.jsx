@@ -19,7 +19,8 @@ import {
   FileCheck,
   UserCheck,
   UserPlus,
-  Shield
+  Shield,
+  LogOut
 } from 'lucide-react';
 
 // --- CARD DE MÉTRICA EMPRESARIAL ---
@@ -70,7 +71,7 @@ export default function App() {
   // --- FORMULÁRIO DE NOVO USUÁRIO ---
   const [newUser, setNewUser] = useState({ name: '', role: 'FISCAL', email: '', password: '' });
 
-  // --- DADOS DO USUÁRIO LOGADO ---
+  // --- DADOS DO USUÁRIO LOGADO (MÓDULO DE GESTÃO DE SERVIDORES) ---
   const [currentUser] = useState({
     name: 'Márcio Rodrigues de Oliveira',
     role: 'Civil Engineer / Fiscal Municipal'
@@ -90,6 +91,10 @@ export default function App() {
     e.preventDefault();
     alert(`Usuário ${newUser.name} cadastrado com sucesso com a regra de acesso: ${newUser.role}`);
     setNewUser({ name: '', role: 'FISCAL', email: '', password: '' });
+  };
+
+  const handleLogout = () => {
+    alert('Encerrando sessão com segurança jurídica. Até logo!');
   };
 
   // --- MÓDULO: CADASTRO DE EMPRESAS ---
@@ -169,6 +174,14 @@ export default function App() {
               }`}
             >
               <UserPlus size={16} /> Criar Novo Usuário
+            </button>
+
+            {/* BOTÃO SAIR ADICIONADO AQUI */}
+            <button 
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-rose-400 hover:bg-rose-950/30 hover:text-rose-300 transition-colors pt-4 mt-2 border-t border-slate-800/60"
+            >
+              <LogOut size={16} /> Sair do Sistema
             </button>
           </nav>
         </div>
@@ -370,7 +383,7 @@ export default function App() {
             </div>
           )}
 
-          {/* --- TAB 3: FORMULÁRIO COM SELETOR DE NÍVEL DE ACESSO EXCLUSIVO --- */}
+          {/* --- TAB 3: FORMULÁRIO DE CRIAR USUÁRIO --- */}
           {activeTab === 'create-user' && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm max-w-2xl mx-auto overflow-hidden">
               <div className="p-5 border-b border-slate-200 bg-slate-50/50">
@@ -393,7 +406,6 @@ export default function App() {
                   />
                 </div>
 
-                {/* CAMPO ATUALIZADO: SELETOR DE NÍVEL DE ACESSO EXCLUSIVO COM EXPLICAÇÕES */}
                 <div>
                   <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Nível de Acesso no Sistema</label>
                   <div className="relative">
@@ -411,7 +423,6 @@ export default function App() {
                     </div>
                   </div>
                   
-                  {/* Descritivos auxiliares baseados nas diretrizes operacionais */}
                   <div className="mt-3 bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2">
                     <p className="text-[11px] text-slate-600">
                       <strong className="text-blue-600">ADMIN:</strong> Possui controle irrestrito. Pode criar usuários, auditar logs e gerenciar todas as instâncias municipais.
