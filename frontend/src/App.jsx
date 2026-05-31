@@ -64,13 +64,14 @@ const MetricCard = ({ title, value, icon: Icon, change, type = 'default' }) => {
 };
 
 export default function App() {
-  // --- CARREGAMENTO DO BANCO DE DADOS LOCAL (PERSISTIDO) ---
+  // --- CARREGAMENTO DO BANCO DE DADOS LOCAL COMPLETO ---
   const [users, setUsers] = useState(() => {
     const savedUsers = localStorage.getItem('fiscaliza_users');
     if (savedUsers) {
       return JSON.parse(savedUsers);
     }
-    // Dados iniciais caso o banco local esteja vazio
+    
+    // Lista de usuários padrão do sistema persistido
     return [
       {
         name: 'Márcio Rodrigues de Oliveira',
@@ -81,13 +82,31 @@ export default function App() {
       {
         name: 'Ailton Silva',
         email: 'ailton@gmail.com',
+        role: 'ANALISTA',
+        description: 'Executa análises e pareceres técnicos de PCA. Não acessa a área administrativa nem altera documentos homologados pós-emissão.'
+      },
+      {
+        name: 'Flávio Santos',
+        email: 'flavio@gmail.com',
+        role: 'ANALISTA',
+        description: 'Executa análises e pareceres técnicos de PCA. Não acessa a área administrativa nem altera documentos homologados pós-emissão.'
+      },
+      {
+        name: 'Fernanda Costa',
+        email: 'fernanda@gmail.com',
+        role: 'ANALISTA',
+        description: 'Executa análises e pareceres técnicos de PCA. Não acessa a área administrativa nem altera documentos homologados pós-emissão.'
+      },
+      {
+        name: 'Agente Fiscal',
+        email: 'fiscal@gmail.com',
         role: 'FISCAL',
         description: 'Coleta evidências de campo (fotos/vídeos). Visualiza cadastros para fins de consulta legal, sem permissão de escrita ou deleção.'
       }
     ];
   });
 
-  // Salva no localStorage sempre que a lista de usuários mudar
+  // Gravação automática no LocalStorage do Navegador
   useEffect(() => {
     localStorage.setItem('fiscaliza_users', JSON.stringify(users));
   }, [users]);
@@ -116,11 +135,9 @@ export default function App() {
     setTimeout(() => setPrintingId(null), 1200);
   };
 
-  // --- ESCRIÇÃO NO BANCO DE DADOS LOCAL COM VALIDAÇÕES RBAC ---
   const handleCreateUserSubmit = (e) => {
     e.preventDefault();
     
-    // Define a descrição com base na regra selecionada
     let roleDescription = '';
     if (newUserForm.role === 'ADMIN') roleDescription = 'Possui controle irrestrito. Pode criar usuários, auditar logs e gerenciar todas as instâncias municipais.';
     if (newUserForm.role === 'ANALISTA') roleDescription = 'Executa análises e pareceres técnicos de PCA. Não acessa a área administrativa nem altera documentos homologados pós-emissão.';
@@ -138,7 +155,6 @@ export default function App() {
     setNewUserForm({ name: '', role: 'FISCAL', email: '', password: '' });
   };
 
-  // --- LEITURA E VALIDAÇÃO NO BANCO DE DADOS LOCAL ---
   const handleLoginSubmit = (e) => {
     e.preventDefault();
     const targetEmail = loginForm.email.toLowerCase().trim();
@@ -149,7 +165,7 @@ export default function App() {
       setIsAuthenticated(true);
       setActiveTab('dashboard');
     } else {
-      alert('Erro de Autenticação: E-mail não localizado nas tabelas de usuários do município.');
+      alert('Erro de Autenticação: E-mail não cadastrado no banco de dados municipal.');
     }
     setLoginForm({ email: '', password: '' });
   };
@@ -159,13 +175,14 @@ export default function App() {
     setLoginForm({ email: '', password: '' });
   };
 
-  // --- DADOS ADICIONAIS ---
+  // --- MÓDULO: CADASTRO DE EMPRESAS ---
   const [companies] = useState([
     { id: 'EMP-041', name: 'Mineração Vale do Araguaia', sector: 'Industrial', status: 'Regular', doc: 'LO' },
     { id: 'EMP-042', name: 'Lava-Jato Daiane', sector: 'Serviços / Comercial', status: 'Notificado', doc: 'LO' },
     { id: 'EMP-043', name: 'Madeireira Progresso Regional', sector: 'Florestal', status: 'Irregular', doc: 'LI' },
   ]);
 
+  // --- MÓDULO: LICENCIAMENTO AUTOMATIZADO ---
   const [licenses] = useState([
     { id: 'LIC-LO-2026', company: 'Lava-Jato Daiane', type: 'LO (Operação)', status: 'Emitido', token: 'QR-A48B', color: 'text-emerald-700 border-emerald-200 bg-emerald-50' },
     { id: 'LIC-LI-2092', company: 'Construtora Leste PA', type: 'LI (Instalação)', status: 'Emitido', token: 'QR-F92C', color: 'text-blue-700 border-blue-200 bg-blue-50' },
@@ -175,7 +192,7 @@ export default function App() {
   const filteredCompanies = companies.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const filteredLicenses = licenses.filter(l => l.company.toLowerCase().includes(searchTerm.toLowerCase()) || l.type.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  // --- INTERFACE: TELA DE LOGIN INSTITUCIONAL ---
+  // --- INTERFACE: LOGIN INSTITUCIONAL ---
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-100 text-slate-800 flex items-center justify-center font-sans px-4">
@@ -193,7 +210,7 @@ export default function App() {
           <form onSubmit={handleLoginSubmit} className="p-6 space-y-4" autoComplete="off">
             <div className="text-center pb-2">
               <h3 className="text-lg font-bold text-slate-800">Autenticação Institucional</h3>
-              <p className="text-xs text-slate-500 mt-1">Insira as credenciais vinculadas ao banco de dados.</p>
+              <p className="text-xs text-slate-500 mt-1">Insira e-mail cadastrado (Ex: ailton@gmail.com, flavio@gmail.com, etc).</p>
             </div>
 
             <div>
@@ -202,7 +219,7 @@ export default function App() {
                 type="text" 
                 required
                 autoComplete="off"
-                placeholder="Ex: ailton@gmail.com ou cda.marcio@gmail.com"
+                placeholder="Digitar e-mail corporativo..."
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800"
                 value={loginForm.email}
                 onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
@@ -215,7 +232,7 @@ export default function App() {
                 type="password" 
                 required
                 autoComplete="new-password"
-                placeholder="••••••••"
+                placeholder="Digite 123..."
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800"
                 value={loginForm.password}
                 onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
@@ -293,7 +310,7 @@ export default function App() {
               <Building2 size={16} /> Cadastro de Empresas
             </button>
 
-            {/* Bloqueio de Interface Visível para nível FISCAL conforme regra estabelecida */}
+            {/* Trava visual: Só ADMIN e ANALISTA enxergam menu de criação */}
             {currentUser.role !== 'FISCAL' && (
               <button 
                 onClick={() => setActiveTab('create-user')}
@@ -432,7 +449,7 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* Trava visual RBAC: Usuário FISCAL não pode emitir ou gerar novas licenças */}
+                        {/* Trava visual RBAC ativa para o nível FISCAL */}
                         <button 
                           onClick={() => handlePrintSimulation(lic.id)}
                           disabled={printingId !== null || lic.status === 'Pendente' || currentUser.role === 'FISCAL'}
@@ -501,7 +518,7 @@ export default function App() {
             </div>
           )}
 
-          {/* --- TAB 3: CONTROLE RBAC COMPLETO COM BANCO DE DADOS LOCAL EM TEMPO REAL --- */}
+          {/* --- TAB 3: CONTROLE RBAC COMPLETO COM TODAS AS CONTAS PERSISTIDAS NO BANCO LOCAL --- */}
           {activeTab === 'create-user' && currentUser.role !== 'FISCAL' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               
@@ -520,7 +537,7 @@ export default function App() {
                     <input 
                       type="text" 
                       required
-                      placeholder="Ex: Ailton Silva"
+                      placeholder="Ex: Roberto Alencar"
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 placeholder-slate-400"
                       value={newUserForm.name}
                       onChange={(e) => setNewUserForm({...newUserForm, name: e.target.value})}
@@ -557,7 +574,7 @@ export default function App() {
                     <input 
                       type="email" 
                       required
-                      placeholder="ailton@gmail.com"
+                      placeholder="usuario@gmail.com"
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 placeholder-slate-400"
                       value={newUserForm.email}
                       onChange={(e) => setNewUserForm({...newUserForm, email: e.target.value})}
@@ -587,7 +604,7 @@ export default function App() {
                 </form>
               </div>
 
-              {/* Tabela de Usuários Atualizada na Hora */}
+              {/* Tabela de Usuários Completa Contendo Todas as 5 Contas Iniciais */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-5 border-b border-slate-200 bg-slate-50/50">
                   <h3 className="font-bold text-sm text-slate-800 flex items-center gap-2">
