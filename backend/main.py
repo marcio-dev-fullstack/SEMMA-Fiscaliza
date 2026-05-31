@@ -63,10 +63,25 @@ def verificar_licenca_software(conn = Depends(get_db)):
 @app.get("/empresas")
 @app.get("/empresas/")
 def listar_empresas(conn = Depends(get_db)):
-    """Rota para buscar todas as empresas cadastradas no banco municipal."""
     cursor = conn.cursor()
     try:
         cursor.execute("SELECT id, razao_social, cnpj FROM empresas ORDER BY razao_social ASC;")
+        return cursor.fetchall()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/auditoria")
+@app.get("/auditoria/")
+def listar_logs_auditoria(conn = Depends(get_db)):
+    """Rota regulatória para auditar ações de utilizadores no sistema."""
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT l.id, u.text_nome as usuario, l.acao, l.tabela_afetada, l.registro_id, l.data_registro 
+            FROM logs_auditoria l
+            JOIN usuarios u ON l.usuario_id = u.id
+            ORDER BY l.data_registro DESC;
+        """)
         return cursor.fetchall()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
