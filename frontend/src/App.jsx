@@ -25,6 +25,16 @@ import {
   Users
 } from 'lucide-react';
 
+// --- FUNÇÃO AUXILIAR PARA MÁSCARA DE CPF ---
+const formatCPF = (value) => {
+  if (!value) return value;
+  const cpfDigits = value.replace(/\D/g, '');
+  if (cpfDigits.length <= 3) return cpfDigits;
+  if (cpfDigits.length <= 6) return `${cpfDigits.slice(0, 3)}.${cpfDigits.slice(3)}`;
+  if (cpfDigits.length <= 9) return `${cpfDigits.slice(0, 3)}.${cpfDigits.slice(3, 6)}.${cpfDigits.slice(6)}`;
+  return `${cpfDigits.slice(0, 3)}.${cpfDigits.slice(3, 6)}.${cpfDigits.slice(6, 9)}-${cpfDigits.slice(9, 11)}`;
+};
+
 // --- CARD DE MÉTRICA EMPRESARIAL ---
 const MetricCard = ({ title, value, icon: Icon, change, type = 'default' }) => {
   const styles = {
@@ -64,57 +74,63 @@ const MetricCard = ({ title, value, icon: Icon, change, type = 'default' }) => {
 };
 
 export default function App() {
-  // --- CARREGAMENTO DO BANCO DE DADOS LOCAL COMPLETO ---
+  // --- CARREGAMENTO ATUALIZADO DO BANCO DE DADOS LOCAL (CHAVE V2) ---
   const [users, setUsers] = useState(() => {
-    const savedUsers = localStorage.getItem('fiscaliza_users');
+    const savedUsers = localStorage.getItem('fiscaliza_users_v2');
     if (savedUsers) {
       return JSON.parse(savedUsers);
     }
     
-    // Lista de usuários padrão do sistema persistido
+    // Configuração oficial inicial forçada no banco de dados local
     return [
       {
-        name: 'Márcio Rodrigues de Oliveira',
-        email: 'cda.marcio@gmail.com',
+        name: 'MARCIO RODRIGUES DE OLIVEIRA',
+        cpf: '633.740.302-97',
+        password: 'mamst1ns',
         role: 'ADMIN',
         description: 'Possui controle irrestrito. Pode criar usuários, auditar logs e gerenciar todas as instâncias municipais.'
       },
       {
-        name: 'Ailton Silva',
-        email: 'ailton@gmail.com',
+        name: 'AILTON OLIVEIRA BARTOLOMEU',
+        cpf: '000.000.001-23',
+        password: 'mamst1ns',
+        role: 'ADMIN',
+        description: 'Possui controle irrestrito. Pode criar usuários, auditar logs e gerenciar todas as instâncias municipais.'
+      },
+      {
+        name: 'FLAVIO WATANABE',
+        cpf: '633.000.302-97',
+        password: '123',
         role: 'ANALISTA',
         description: 'Executa análises e pareceres técnicos de PCA. Não acessa a área administrativa nem altera documentos homologados pós-emissão.'
       },
       {
-        name: 'Flávio Santos',
-        email: 'flavio@gmail.com',
+        name: 'FERNANDA AGRONOMA',
+        cpf: '612.345.302-97',
+        password: '123',
         role: 'ANALISTA',
         description: 'Executa análises e pareceres técnicos de PCA. Não acessa a área administrativa nem altera documentos homologados pós-emissão.'
       },
       {
-        name: 'Fernanda Costa',
-        email: 'fernanda@gmail.com',
-        role: 'ANALISTA',
-        description: 'Executa análises e pareceres técnicos de PCA. Não acessa a área administrativa nem altera documentos homologados pós-emissão.'
-      },
-      {
-        name: 'Agente Fiscal',
-        email: 'fiscal@gmail.com',
+        name: 'FISCAIS DA SEMA',
+        cpf: '612.345.302-98',
+        password: '123',
         role: 'FISCAL',
         description: 'Coleta evidências de campo (fotos/vídeos). Visualiza cadastros para fins de consulta legal, sem permissão de escrita ou deleção.'
       }
     ];
   });
 
-  // Gravação automática no LocalStorage do Navegador
+  // Salva na chave fiscaliza_users_v2
   useEffect(() => {
-    localStorage.setItem('fiscaliza_users', JSON.stringify(users));
+    localStorage.setItem('fiscaliza_users_v2', JSON.stringify(users));
   }, [users]);
 
-  // --- ESTADOS DE SESSÃO ---
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-  const [currentUser, setCurrentUser] = useState(users[0]); 
-  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  // --- ESTADOS DE SESSÃO E AUTENTICAÇÃO ---
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null); 
+  const [loginForm, setLoginForm] = useState({ cpf: '', password: '' });
+  const [loginLoading, setLoginLoading] = useState(false);
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -122,8 +138,8 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [printingId, setPrintingId] = useState(null);
 
-  // --- FORMULÁRIO DE CRIAÇÃO ---
-  const [newUserForm, setNewUserForm] = useState({ name: '', role: 'FISCAL', email: '', password: '' });
+  // --- FORMULÁRIO DE CADASTRO ---
+  const [newUserForm, setNewUserForm] = useState({ name: '', role: 'FISCAL', cpf: '', password: '' });
 
   const triggerRefresh = () => {
     setIsRefreshing(true);
@@ -135,54 +151,76 @@ export default function App() {
     setTimeout(() => setPrintingId(null), 1200);
   };
 
+  // --- CADASTRO DE NOVO USUÁRIO COM REQUISITOS DE CPF ÚNICO ---
   const handleCreateUserSubmit = (e) => {
     e.preventDefault();
-    
+    const formattedCpf = formatCPF(newUserForm.cpf);
+
+    const cpfExists = users.some(u => u.cpf === formattedCpf);
+    if (cpfExists) {
+      alert(`Erro de Integridade: Já existe um usuário cadastrado com o CPF ${formattedCpf}. O campo deve ser único.`);
+      return;
+    }
+
+    if (newUserForm.password.length < 3) {
+      alert('Erro de Segurança: Senha provisória inválida.');
+      return;
+    }
+
     let roleDescription = '';
     if (newUserForm.role === 'ADMIN') roleDescription = 'Possui controle irrestrito. Pode criar usuários, auditar logs e gerenciar todas as instâncias municipais.';
     if (newUserForm.role === 'ANALISTA') roleDescription = 'Executa análises e pareceres técnicos de PCA. Não acessa a área administrativa nem altera documentos homologados pós-emissão.';
     if (newUserForm.role === 'FISCAL') roleDescription = 'Coleta evidências de campo (fotos/vídeos). Visualiza cadastros para fins de consulta legal, sem permissão de escrita ou deleção.';
 
     const userToRegister = {
-      name: newUserForm.name,
-      email: newUserForm.email.toLowerCase().trim(),
+      name: newUserForm.name.toUpperCase().trim(),
+      cpf: formattedCpf,
+      password: newUserForm.password,
       role: newUserForm.role,
       description: roleDescription
     };
 
     setUsers([...users, userToRegister]);
-    alert(`Sucesso: Usuário ${newUserForm.name} persistido no banco de dados local sob a regra ${newUserForm.role}!`);
-    setNewUserForm({ name: '', role: 'FISCAL', email: '', password: '' });
+    alert(`Sucesso: Conta vinculada ao CPF único ${formattedCpf} gravada com êxito!`);
+    setNewUserForm({ name: '', role: 'FISCAL', cpf: '', password: '' });
   };
 
+  // --- LOGIN VALIDADO COM BUSCA NO LOCALSTORAGE ---
   const handleLoginSubmit = (e) => {
     e.preventDefault();
-    const targetEmail = loginForm.email.toLowerCase().trim();
-    const foundUser = users.find(u => u.email.toLowerCase() === targetEmail);
+    const cleanCpf = formatCPF(loginForm.cpf);
 
-    if (foundUser) {
-      setCurrentUser(foundUser);
-      setIsAuthenticated(true);
-      setActiveTab('dashboard');
-    } else {
-      alert('Erro de Autenticação: E-mail não cadastrado no banco de dados municipal.');
-    }
-    setLoginForm({ email: '', password: '' });
+    setLoginLoading(true);
+
+    setTimeout(() => {
+      // Faz o escaneamento rigoroso do banco de dados local (localStorage)
+      const foundUser = users.find(u => u.cpf === cleanCpf && u.password === loginForm.password);
+
+      if (foundUser) {
+        setCurrentUser(foundUser);
+        setIsAuthenticated(true);
+        setActiveTab('dashboard');
+        setLoginForm({ cpf: '', password: '' });
+      } else {
+        alert('Acesso Negado: CPF ou senha incorreta na base de dados.');
+      }
+      setLoginLoading(false);
+    }, 1000);
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    setLoginForm({ email: '', password: '' });
+    setCurrentUser(null);
+    setLoginForm({ cpf: '', password: '' });
   };
 
-  // --- MÓDULO: CADASTRO DE EMPRESAS ---
+  // --- DADOS INSTITUCIONAIS ADICIONAIS ---
   const [companies] = useState([
     { id: 'EMP-041', name: 'Mineração Vale do Araguaia', sector: 'Industrial', status: 'Regular', doc: 'LO' },
     { id: 'EMP-042', name: 'Lava-Jato Daiane', sector: 'Serviços / Comercial', status: 'Notificado', doc: 'LO' },
     { id: 'EMP-043', name: 'Madeireira Progresso Regional', sector: 'Florestal', status: 'Irregular', doc: 'LI' },
   ]);
 
-  // --- MÓDULO: LICENCIAMENTO AUTOMATIZADO ---
   const [licenses] = useState([
     { id: 'LIC-LO-2026', company: 'Lava-Jato Daiane', type: 'LO (Operação)', status: 'Emitido', token: 'QR-A48B', color: 'text-emerald-700 border-emerald-200 bg-emerald-50' },
     { id: 'LIC-LI-2092', company: 'Construtora Leste PA', type: 'LI (Instalação)', status: 'Emitido', token: 'QR-F92C', color: 'text-blue-700 border-blue-200 bg-blue-50' },
@@ -192,7 +230,7 @@ export default function App() {
   const filteredCompanies = companies.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const filteredLicenses = licenses.filter(l => l.company.toLowerCase().includes(searchTerm.toLowerCase()) || l.type.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  // --- INTERFACE: LOGIN INSTITUCIONAL ---
+  // --- TELA DE LOGIN ---
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-100 text-slate-800 flex items-center justify-center font-sans px-4">
@@ -209,20 +247,21 @@ export default function App() {
           
           <form onSubmit={handleLoginSubmit} className="p-6 space-y-4" autoComplete="off">
             <div className="text-center pb-2">
-              <h3 className="text-lg font-bold text-slate-800">Autenticação Institucional</h3>
-              <p className="text-xs text-slate-500 mt-1">Insira e-mail cadastrado (Ex: ailton@gmail.com, flavio@gmail.com, etc).</p>
+              <h3 className="text-lg font-bold text-slate-800">Autenticação com Chave CPF</h3>
+              <p className="text-xs text-slate-500 mt-1">O sistema efetuará a busca e validação na base local persistida.</p>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">E-mail Corporativo</label>
+              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">CPF do Servidor</label>
               <input 
                 type="text" 
                 required
-                autoComplete="off"
-                placeholder="Digitar e-mail corporativo..."
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800"
-                value={loginForm.email}
-                onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+                disabled={loginLoading}
+                maxLength="14"
+                placeholder="000.000.000-00"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 font-mono"
+                value={loginForm.cpf}
+                onChange={(e) => setLoginForm({ ...loginForm, cpf: formatCPF(e.target.value) })}
               />
             </div>
 
@@ -231,8 +270,8 @@ export default function App() {
               <input 
                 type="password" 
                 required
-                autoComplete="new-password"
-                placeholder="Digite 123..."
+                disabled={loginLoading}
+                placeholder="••••••••"
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800"
                 value={loginForm.password}
                 onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
@@ -241,9 +280,20 @@ export default function App() {
 
             <button 
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs uppercase tracking-wider py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 mt-2"
+              disabled={loginLoading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs uppercase tracking-wider py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 mt-2 disabled:bg-slate-400"
             >
-              <LogIn size={14} /> Entrar no Sistema
+              {loginLoading ? (
+                <>
+                  <RefreshCw size={14} className="animate-spin" />
+                  <span>Autenticando no Banco...</span>
+                </>
+              ) : (
+                <>
+                  <LogIn size={14} /> 
+                  <span>Entrar no Sistema</span>
+                </>
+              )}
             </button>
           </form>
 
@@ -257,6 +307,7 @@ export default function App() {
     );
   }
 
+  // --- RENDERIZAÇÃO DA PLATAFORMA MUNICIPAL ---
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex font-sans selection:bg-blue-100 selection:text-blue-900">
       
@@ -279,18 +330,18 @@ export default function App() {
             </button>
           </div>
 
-          {/* Perfil Refletindo Dinamicamente o Usuário Autenticado */}
+          {/* Perfil Dinâmico Baseado no Login */}
           <div className="p-4 mx-3 mt-4 bg-slate-950/40 border border-slate-800 rounded-xl flex items-center gap-3">
             <div className="p-2 bg-slate-800 text-blue-400 rounded-lg shrink-0">
               <UserCheck size={16} />
             </div>
             <div className="min-w-0">
               <p className="text-xs font-bold text-slate-200 truncate">{currentUser.name}</p>
-              <p className="text-[10px] font-medium text-emerald-400 tracking-wider uppercase truncate mt-0.5">{currentUser.role}</p>
+              <p className="text-[10px] font-bold text-emerald-400 tracking-wider uppercase truncate mt-0.5">{currentUser.role}</p>
             </div>
           </div>
 
-          {/* Menus de Navegação */}
+          {/* Menus de Navegação Lateral */}
           <nav className="p-3 space-y-1">
             <button 
               onClick={() => setActiveTab('dashboard')}
@@ -310,7 +361,7 @@ export default function App() {
               <Building2 size={16} /> Cadastro de Empresas
             </button>
 
-            {/* Trava visual: Só ADMIN e ANALISTA enxergam menu de criação */}
+            {/* Restrição RBAC: Apenas ADMIN e ANALISTA enxergam a aba de criação */}
             {currentUser.role !== 'FISCAL' && (
               <button 
                 onClick={() => setActiveTab('create-user')}
@@ -361,7 +412,10 @@ export default function App() {
           <div className="flex items-center gap-6">
             <div className="hidden sm:flex flex-col text-right border-r border-slate-200 pr-4">
               <span className="text-xs font-bold text-slate-800">{currentUser.name}</span>
-              <span className="text-[10px] font-black text-blue-600 uppercase tracking-wider mt-0.5">{currentUser.role}</span>
+              <span className={`text-[10px] font-black text-blue-600 uppercase tracking-wider mt-0.5 ${
+                currentUser.role === 'ADMIN' ? 'text-blue-600' :
+                currentUser.role === 'ANALISTA' ? 'text-emerald-600' : 'text-amber-600'
+              }`}>{currentUser.role} • {currentUser.cpf}</span>
             </div>
 
             <div className="relative hidden md:block">
@@ -449,7 +503,7 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* Trava visual RBAC ativa para o nível FISCAL */}
+                        {/* Restrição de emissão para nível FISCAL */}
                         <button 
                           onClick={() => handlePrintSimulation(lic.id)}
                           disabled={printingId !== null || lic.status === 'Pendente' || currentUser.role === 'FISCAL'}
@@ -518,7 +572,7 @@ export default function App() {
             </div>
           )}
 
-          {/* --- TAB 3: CONTROLE RBAC COMPLETO COM TODAS AS CONTAS PERSISTIDAS NO BANCO LOCAL --- */}
+          {/* --- TAB 3: CONTROLE RBAC PERSISTIDO --- */}
           {activeTab === 'create-user' && currentUser.role !== 'FISCAL' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               
@@ -528,7 +582,7 @@ export default function App() {
                   <h3 className="font-bold text-sm text-slate-800 flex items-center gap-2">
                     <UserPlus size={16} className="text-blue-600" /> Cadastrar Novo Servidor / Usuário do Sistema
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">Defina as credenciais corporativas e os privilégios vinculados.</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Insira um CPF inédito e defina os privilégios vinculados.</p>
                 </div>
 
                 <form onSubmit={handleCreateUserSubmit} className="p-6 space-y-4">
@@ -545,6 +599,19 @@ export default function App() {
                   </div>
 
                   <div>
+                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">CPF (Chave Única)</label>
+                    <input 
+                      type="text" 
+                      required
+                      maxLength="14"
+                      placeholder="000.000.000-00"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 font-mono"
+                      value={newUserForm.cpf}
+                      onChange={(e) => setNewUserForm({...newUserForm, cpf: formatCPF(e.target.value)})}
+                    />
+                  </div>
+
+                  <div>
                     <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Nível de Acesso no Sistema</label>
                     <select
                       className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 cursor-pointer"
@@ -555,18 +622,6 @@ export default function App() {
                       <option value="ANALISTA">ANALISTA — Pareceres Técnicos (Sem exclusão ou alteração de licenças)</option>
                       <option value="FISCAL">FISCAL — Evidências de campo (Apenas consulta, sem escrita)</option>
                     </select>
-                    
-                    <div className="mt-4 bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-2">
-                      <p className="text-[11px] text-slate-600">
-                        <strong className="text-blue-600">ADMIN:</strong> Possui controle irrestrito. Pode criar usuários, auditar logs e gerenciar todas as instâncias municipais.
-                      </p>
-                      <p className="text-[11px] text-slate-600">
-                        <strong className="text-emerald-600">ANALISTA:</strong> Executa análises e pareceres técnicos de PCA. Não acessa a área administrativa nem altera documentos homologados pós-emissão.
-                      </p>
-                      <p className="text-[11px] text-slate-600">
-                        <strong className="text-amber-600">FISCAL:</strong> Coleta evidências de campo (fotos/vídeos). Visualiza cadastros para fins de consulta legal, sem permissão de escrita ou deleção.
-                      </p>
-                    </div>
                   </div>
 
                   <div>
@@ -582,12 +637,12 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Senha Provisória</label>
+                    <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Senha de Acesso</label>
                     <input 
                       type="password" 
                       required
                       placeholder="••••••••"
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 placeholder-slate-400"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800"
                       value={newUserForm.password}
                       onChange={(e) => setNewUserForm({...newUserForm, password: e.target.value})}
                     />
@@ -604,13 +659,13 @@ export default function App() {
                 </form>
               </div>
 
-              {/* Tabela de Usuários Completa Contendo Todas as 5 Contas Iniciais */}
+              {/* Tabela de Usuários Cadastrados */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-5 border-b border-slate-200 bg-slate-50/50">
                   <h3 className="font-bold text-sm text-slate-800 flex items-center gap-2">
                     <Users size={16} className="text-blue-600" /> Repositório de Contas Cadastradas
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">Dados armazenados de forma persistente localmente.</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Todos os registros contêm chaves de CPF exclusivas.</p>
                 </div>
 
                 <div className="overflow-x-auto">
@@ -618,7 +673,7 @@ export default function App() {
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-semibold text-xs uppercase tracking-wider">
                         <th className="p-4">Identificação</th>
-                        <th className="p-4">E-mail</th>
+                        <th className="p-4">CPF Único</th>
                         <th className="p-4 text-center">Nível RBAC</th>
                       </tr>
                     </thead>
@@ -626,7 +681,7 @@ export default function App() {
                       {users.map((u, index) => (
                         <tr key={index} className="hover:bg-slate-50/50 transition-colors">
                           <td className="p-4 font-bold text-slate-800">{u.name}</td>
-                          <td className="p-4 font-mono text-slate-500">{u.email}</td>
+                          <td className="p-4 font-mono text-slate-500">{u.cpf}</td>
                           <td className="p-4 text-center">
                             <span className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-black tracking-wider uppercase ${
                               u.role === 'ADMIN' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
