@@ -18,7 +18,8 @@ import {
   Printer,
   FileCheck,
   UserCheck,
-  UserPlus
+  UserPlus,
+  Shield
 } from 'lucide-react';
 
 // --- CARD DE MÉTRICA EMPRESARIAL ---
@@ -67,7 +68,7 @@ export default function App() {
   const [printingId, setPrintingId] = useState(null);
 
   // --- FORMULÁRIO DE NOVO USUÁRIO ---
-  const [newUser, setNewUser] = useState({ name: '', role: '', email: '', password: '' });
+  const [newUser, setNewUser] = useState({ name: '', role: 'FISCAL', email: '', password: '' });
 
   // --- DADOS DO USUÁRIO LOGADO ---
   const [currentUser] = useState({
@@ -87,8 +88,8 @@ export default function App() {
 
   const handleCreateUserSubmit = (e) => {
     e.preventDefault();
-    alert(`Usuário ${newUser.name} cadastrado com sucesso no sistema!`);
-    setNewUser({ name: '', role: '', email: '', password: '' });
+    alert(`Usuário ${newUser.name} cadastrado com sucesso com a regra de acesso: ${newUser.role}`);
+    setNewUser({ name: '', role: 'FISCAL', email: '', password: '' });
   };
 
   // --- MÓDULO: CADASTRO DE EMPRESAS ---
@@ -161,7 +162,6 @@ export default function App() {
               <Building2 size={16} /> Cadastro de Empresas
             </button>
 
-            {/* NOVA ABA ADICIONADA AQUI */}
             <button 
               onClick={() => setActiveTab('create-user')}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
@@ -370,14 +370,14 @@ export default function App() {
             </div>
           )}
 
-          {/* --- TAB 3: FORMULÁRIO COMPLETO DE CRIAR NOVO USUÁRIO --- */}
+          {/* --- TAB 3: FORMULÁRIO COM SELETOR DE NÍVEL DE ACESSO EXCLUSIVO --- */}
           {activeTab === 'create-user' && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm max-w-2xl mx-auto overflow-hidden">
               <div className="p-5 border-b border-slate-200 bg-slate-50/50">
                 <h3 className="font-bold text-sm text-slate-800 flex items-center gap-2">
                   <UserPlus size={16} className="text-blue-600" /> Cadastrar Novo Servidor / Usuário do Sistema
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">Forneça as credenciais oficiais e atribua o respectivo cargo regulamentado para controle RBAC.</p>
+                <p className="text-xs text-slate-500 mt-0.5">Defina as credenciais e selecione o nível de permissão jurídica adequado.</p>
               </div>
 
               <form onSubmit={handleCreateUserSubmit} className="p-6 space-y-4">
@@ -393,16 +393,36 @@ export default function App() {
                   />
                 </div>
 
+                {/* CAMPO ATUALIZADO: SELETOR DE NÍVEL DE ACESSO EXCLUSIVO COM EXPLICAÇÕES */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Cargo / Função RBAC</label>
-                  <input 
-                    type="text" 
-                    required
-                    placeholder="Ex: Analista Ambiental / Fiscal Operacional"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 placeholder-slate-400"
-                    value={newUser.role}
-                    onChange={(e) => setNewUser({...newUser, role: e.target.value})}
-                  />
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Nível de Acesso no Sistema</label>
+                  <div className="relative">
+                    <select
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 appearance-none cursor-pointer"
+                      value={newUser.role}
+                      onChange={(e) => setNewUser({...newUser, role: e.target.value})}
+                    >
+                      <option value="ADMIN">USUÁRIO ADMIN — Controle total e acesso irrestrito a configurações</option>
+                      <option value="ANALISTA">USUÁRIO ANALISTA — Operação completa, exceto painel Admin e alteração de licenças emitidas</option>
+                      <option value="FISCAL">USUÁRIO FISCAL — Envio de fotos/vídeos e consulta restrita (sem deleção ou alteração)</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+                      <Shield size={16} />
+                    </div>
+                  </div>
+                  
+                  {/* Descritivos auxiliares baseados nas diretrizes operacionais */}
+                  <div className="mt-3 bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2">
+                    <p className="text-[11px] text-slate-600">
+                      <strong className="text-blue-600">ADMIN:</strong> Possui controle irrestrito. Pode criar usuários, auditar logs e gerenciar todas as instâncias municipais.
+                    </p>
+                    <p className="text-[11px] text-slate-600">
+                      <strong className="text-emerald-600">ANALISTA:</strong> Executa análises e pareceres técnicos de PCA. Não acessa a área administrativa nem altera documentos homologados pós-emissão.
+                    </p>
+                    <p className="text-[11px] text-slate-600">
+                      <strong className="text-amber-600">FISCAL:</strong> Coleta evidências de campo (fotos/vídeos). Visualiza cadastros para fins de consulta legal, sem permissão de escrita ou deleção.
+                    </p>
+                  </div>
                 </div>
 
                 <div>
