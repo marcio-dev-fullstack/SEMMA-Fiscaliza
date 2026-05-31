@@ -7,6 +7,13 @@ export default function App() {
   const [empresas, setEmpresas] = useState([]);
   const [logs, setLogs] = useState([]);
   
+  // Estado das Métricas Estatísticas
+  const [metricas, setMetricas] = useState({
+    empresas: 0,
+    logs: 0,
+    licencas: { lp: 0, li: 0, lo: 0, total: 0 }
+  });
+
   // Estados do Formulário de Emissão
   const [empresaId, setEmpresaId] = useState('');
   const [tipoLicenca, setTipoLicenca] = useState('LP');
@@ -29,7 +36,20 @@ export default function App() {
       setUsuario(JSON.parse(sessaoSalva));
     }
     buscarEmpresas();
+    buscarMetricasDashboard();
   }, []);
+
+  const buscarMetricasDashboard = async () => {
+    try {
+      const resposta = await fetch('http://127.0.0.1:8000/dashboard/metricas');
+      if (resposta.ok) {
+        const dados = await resposta.json();
+        setMetricas(dados);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar métricas estatísticas:", err);
+    }
+  };
 
   const buscarEmpresas = async () => {
     try {
@@ -60,6 +80,7 @@ export default function App() {
   };
 
   const deslogarSistema = () => {
+    localStorage.removeItem('access_token');
     localStorage.removeItem('usuario_logado');
     setUsuario(null);
     setTelaAtual('painel');
@@ -93,6 +114,7 @@ export default function App() {
         setMensagemSucesso(`Licença emitida com sucesso! ID: ${dados.licenca_id}. Abrindo documento...`);
         setNumeroProcesso('');
         setConteudoTecnico('');
+        buscarMetricasDashboard(); // Recarrega os gráficos na home
         window.open(`http://127.0.0.1:8000/licencas/${dados.licenca_id}/pdf`, '_blank');
       } else {
         setMensagemErro(dados.detail || 'Erro ao processar emissão regulatória.');
@@ -130,6 +152,7 @@ export default function App() {
         setNovaRazao('');
         setNovoCnpj('');
         await buscarEmpresas();
+        await buscarMetricasDashboard(); // Atualiza gráfico de volume
       } else {
         setMensagemErro(dados.detail || 'Erro ao salvar cadastro da empresa.');
       }
@@ -140,6 +163,12 @@ export default function App() {
     }
   };
 
+  // Cálculo percentual seguro para as barras de gráfico Tailwind
+  const maxLicencas = Math.max(metricas.licencas.lp, metricas.licencas.li, metricas.licencas.lo, 1);
+  const pctLP = (metricas.licencas.lp / maxLicencas) * 100;
+  const pctLI = (metricas.licencas.li / maxLicencas) * 100;
+  const pctLO = (metricas.licencas.lo / maxLicencas) * 100;
+
   if (!usuario) {
     return <Login onLoginSuccess={(dados) => setUsuario(dados)} />;
   }
@@ -148,7 +177,7 @@ export default function App() {
     <div className="min-h-screen bg-gray-50 font-sans antialiased text-gray-900">
       {/* Barra de Navegação Superior */}
       <nav className="bg-green-700 text-white shadow-md px-6 py-4 flex justify-between items-center">
-        <div className="cursor-pointer" onClick={() => { setTelaAtual('painel'); setMensagemSucesso(''); setMensagemErro(''); }}>
+        <div className="cursor-pointer" onClick={() => { setTelaAtual('painel'); setMensagemSucesso(''); setMensagemErro(''); buscarMetricasDashboard(); }}>
           <h1 className="text-xl font-black tracking-tight uppercase">FISCALIZA AMBIENTAL</h1>
           <p className="text-xs text-green-100 font-medium">Painel Integrado de Controle Municipal</p>
         </div>
@@ -171,42 +200,103 @@ export default function App() {
       <main className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
         
         {telaAtual === 'painel' && (
-          /* TELA 01: PAINEL PRINCIPAL */
-          <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200">
-            <div className="border-b border-gray-100 pb-5 mb-6">
-              <h2 className="text-2xl font-bold text-gray-800">Bem-vindo ao Ambiente do Desenvolvedor</h2>
-              <p className="text-sm text-gray-500 mt-1">Gerencie os módulos regulatórios municipais e emissão de certidões.</p>
+          /* TELA 01: PAINEL PRINCIPAL COM BLOCOS GRÁFICOS */
+          <div className="space-y-8">
+            
+            {/* LINHA 1: CARD DE CONTADORES RÁPIDOS */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Empresas Monitoradas</p>
+                <p className="text-3xl font-black text-gray-800 mt-1">{metricas.empresas}</p>
+              </div>
+              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Total de Licenças Emitidas</p>
+                <p className="text-3xl font-black text-green-700 mt-1">{metricas.licencas.total}</p>
+              </div>
+              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Operações Auditadas (RBAC)</p>
+                <p className="text-3xl font-black text-blue-700 mt-1">{metricas.logs}</p>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="border border-gray-200 rounded-xl p-6 hover:border-green-600 hover:shadow-md transition-all bg-gray-50 flex flex-col justify-between">
+            {/* LINHA 2: GRÁFICOS DE BARRAS VIA TAILWIND NATIVO */}
+            <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-700 border-b border-gray-100 pb-3 mb-5">
+                Volumetria de Certidões Regulatórias por Categoria
+              </h3>
+              
+              <div className="space-y-4 max-w-xl">
+                {/* Barra LP */}
                 <div>
-                  <h3 className="font-extrabold text-lg text-gray-800 mb-2">Emitir Licença Ambiental</h3>
-                  <p className="text-sm text-gray-500 mb-4 leading-relaxed">Geração automática de minutas (LP, LI, LO) integradas com criptografia de QR Code imutável.</p>
+                  <div className="flex justify-between text-xs font-bold text-gray-600 mb-1">
+                    <span>LP — Licença Prévia</span>
+                    <span>{metricas.licencas.lp} emitidas</span>
+                  </div>
+                  <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
+                    <div className="bg-yellow-500 h-full rounded-full transition-all duration-500" style={{ width: `${pctLP}%` }}></div>
+                  </div>
                 </div>
-                <button onClick={() => setTelaAtual('emitir_licenca')} className="text-xs font-bold text-left text-green-600 hover:text-green-700 focus:outline-none">
-                  Acessar Módulo &rarr;
-                </button>
-              </div>
 
-              <div className="border border-gray-200 rounded-xl p-6 hover:border-green-600 hover:shadow-md transition-all bg-gray-50 flex flex-col justify-between">
+                {/* Barra LI */}
                 <div>
-                  <h3 className="font-extrabold text-lg text-gray-800 mb-2">Empresas Cadastradas</h3>
-                  <p className="text-sm text-gray-500 mb-4 leading-relaxed">Consulte a situação cadastral, CNPJs ativos e histórico de vistorias das empresas locais no banco.</p>
+                  <div className="flex justify-between text-xs font-bold text-gray-600 mb-1">
+                    <span>LI — Licença de Instalação</span>
+                    <span>{metricas.licencas.li} emitidas</span>
+                  </div>
+                  <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
+                    <div className="bg-orange-500 h-full rounded-full transition-all duration-500" style={{ width: `${pctLI}%` }}></div>
+                  </div>
                 </div>
-                <button onClick={() => { buscarEmpresas(); setTelaAtual('listar_empresas'); }} className="text-xs font-bold text-left text-green-600 hover:text-green-700 focus:outline-none">
-                  Consultar Empresas &rarr;
-                </button>
-              </div>
 
-              <div className="border border-gray-200 rounded-xl p-6 hover:border-green-600 hover:shadow-md transition-all bg-gray-50 flex flex-col justify-between">
+                {/* Barra LO */}
                 <div>
-                  <h3 className="font-extrabold text-lg text-gray-800 mb-2">Logs de Auditoria (RBAC)</h3>
-                  <p className="text-sm text-gray-500 mb-4 leading-relaxed">Trilha imutável de segurança jurídica registrando ações executadas pelos analistas.</p>
+                  <div className="flex justify-between text-xs font-bold text-gray-600 mb-1">
+                    <span>LO — Licença de Operação</span>
+                    <span>{metricas.licencas.lo} emitidas</span>
+                  </div>
+                  <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
+                    <div className="bg-green-600 h-full rounded-full transition-all duration-500" style={{ width: `${pctLO}%` }}></div>
+                  </div>
                 </div>
-                <button onClick={buscarLogsAuditoria} className="text-xs font-bold text-left text-green-600 hover:text-green-700 focus:outline-none">
-                  Exibir Logs &rarr;
-                </button>
+              </div>
+            </div>
+
+            {/* LINHA 3: CARD DE AÇÕES OPERACIONAIS */}
+            <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-700 border-b border-gray-100 pb-3 mb-6">
+                Módulos Administrativos Disponíveis
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="border border-gray-200 rounded-xl p-6 hover:border-green-600 hover:shadow-md transition-all bg-gray-50 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-extrabold text-lg text-gray-800 mb-2">Emitir Licença Ambiental</h3>
+                    <p className="text-sm text-gray-500 mb-4 leading-relaxed">Geração automática de minutas com criptografia de QR Code imutável.</p>
+                  </div>
+                  <button onClick={() => setTelaAtual('emitir_licenca')} className="text-xs font-bold text-left text-green-600 hover:text-green-700 focus:outline-none">
+                    Acessar Módulo &rarr;
+                  </button>
+                </div>
+
+                <div className="border border-gray-200 rounded-xl p-6 hover:border-green-600 hover:shadow-md transition-all bg-gray-50 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-extrabold text-lg text-gray-800 mb-2">Empresas Cadastradas</h3>
+                    <p className="text-sm text-gray-500 mb-4 leading-relaxed">Consulte a situação cadastral e o histórico de vistorias das empresas locais no banco.</p>
+                  </div>
+                  <button onClick={() => { buscarEmpresas(); setTelaAtual('listar_empresas'); }} className="text-xs font-bold text-left text-green-600 hover:text-green-700 focus:outline-none">
+                    Consultar Empresas &rarr;
+                  </button>
+                </div>
+
+                <div className="border border-gray-200 rounded-xl p-6 hover:border-green-600 hover:shadow-md transition-all bg-gray-50 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-extrabold text-lg text-gray-800 mb-2">Logs de Auditoria (RBAC)</h3>
+                    <p className="text-sm text-gray-500 mb-4 leading-relaxed">Trilha imutável de segurança jurídica registrando ações executadas pelos analistas.</p>
+                  </div>
+                  <button onClick={buscarLogsAuditoria} className="text-xs font-bold text-left text-green-600 hover:text-green-700 focus:outline-none">
+                    Exibir Logs &rarr;
+                  </button>
+                </div>
               </div>
             </div>
           </div>
