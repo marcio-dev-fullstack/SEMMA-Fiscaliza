@@ -74,14 +74,14 @@ const MetricCard = ({ title, value, icon: Icon, change, type = 'default' }) => {
 };
 
 export default function App() {
-  // --- CARREGAMENTO ATUALIZADO DO BANCO DE DADOS LOCAL (CHAVE V2) ---
+  // --- BANCO DE DADOS LOCAL EXCLUSIVO: APENAS O SEU ADMIN COMO CONTA INICIAL ---
   const [users, setUsers] = useState(() => {
-    const savedUsers = localStorage.getItem('fiscaliza_users_v2');
+    const savedUsers = localStorage.getItem('fiscaliza_database_final');
     if (savedUsers) {
       return JSON.parse(savedUsers);
     }
     
-    // Configuração oficial inicial forçada no banco de dados local
+    // Cadastro mestre único do sistema
     return [
       {
         name: 'MARCIO RODRIGUES DE OLIVEIRA',
@@ -89,41 +89,13 @@ export default function App() {
         password: 'mamst1ns',
         role: 'ADMIN',
         description: 'Possui controle irrestrito. Pode criar usuários, auditar logs e gerenciar todas as instâncias municipais.'
-      },
-      {
-        name: 'AILTON OLIVEIRA BARTOLOMEU',
-        cpf: '000.000.001-23',
-        password: 'mamst1ns',
-        role: 'ADMIN',
-        description: 'Possui controle irrestrito. Pode criar usuários, auditar logs e gerenciar todas as instâncias municipais.'
-      },
-      {
-        name: 'FLAVIO WATANABE',
-        cpf: '633.000.302-97',
-        password: '123',
-        role: 'ANALISTA',
-        description: 'Executa análises e pareceres técnicos de PCA. Não acessa a área administrativa nem altera documentos homologados pós-emissão.'
-      },
-      {
-        name: 'FERNANDA AGRONOMA',
-        cpf: '612.345.302-97',
-        password: '123',
-        role: 'ANALISTA',
-        description: 'Executa análises e pareceres técnicos de PCA. Não acessa a área administrativa nem altera documentos homologados pós-emissão.'
-      },
-      {
-        name: 'FISCAIS DA SEMA',
-        cpf: '612.345.302-98',
-        password: '123',
-        role: 'FISCAL',
-        description: 'Coleta evidências de campo (fotos/vídeos). Visualiza cadastros para fins de consulta legal, sem permissão de escrita ou deleção.'
       }
     ];
   });
 
-  // Salva na chave fiscaliza_users_v2
+  // Persistência automática das atualizações de contas no localStorage
   useEffect(() => {
-    localStorage.setItem('fiscaliza_users_v2', JSON.stringify(users));
+    localStorage.setItem('fiscaliza_database_final', JSON.stringify(users));
   }, [users]);
 
   // --- ESTADOS DE SESSÃO E AUTENTICAÇÃO ---
@@ -151,19 +123,19 @@ export default function App() {
     setTimeout(() => setPrintingId(null), 1200);
   };
 
-  // --- CADASTRO DE NOVO USUÁRIO COM REQUISITOS DE CPF ÚNICO ---
+  // --- CADASTRO DE NOVOS SERVIDORES COM GARANTIA DE CPF ÚNICO ---
   const handleCreateUserSubmit = (e) => {
     e.preventDefault();
     const formattedCpf = formatCPF(newUserForm.cpf);
 
     const cpfExists = users.some(u => u.cpf === formattedCpf);
     if (cpfExists) {
-      alert(`Erro de Integridade: Já existe um usuário cadastrado com o CPF ${formattedCpf}. O campo deve ser único.`);
+      alert(`Erro Cadastral: Operação negada. O CPF ${formattedCpf} já está associado a uma conta ativa no município.`);
       return;
     }
 
-    if (newUserForm.password.length < 3) {
-      alert('Erro de Segurança: Senha provisória inválida.');
+    if (newUserForm.password.trim() === '') {
+      alert('Erro de Segurança: Forneça uma senha válida para o usuário.');
       return;
     }
 
@@ -181,11 +153,11 @@ export default function App() {
     };
 
     setUsers([...users, userToRegister]);
-    alert(`Sucesso: Conta vinculada ao CPF único ${formattedCpf} gravada com êxito!`);
+    alert(`Sucesso: Usuário ${newUserForm.name} registrado sob o CPF único ${formattedCpf}!`);
     setNewUserForm({ name: '', role: 'FISCAL', cpf: '', password: '' });
   };
 
-  // --- LOGIN VALIDADO COM BUSCA NO LOCALSTORAGE ---
+  // --- FLUXO DE LOGIN COM BUSCA E VALIDAÇÃO NO BANCO DE DADOS LOCAL ---
   const handleLoginSubmit = (e) => {
     e.preventDefault();
     const cleanCpf = formatCPF(loginForm.cpf);
@@ -193,7 +165,7 @@ export default function App() {
     setLoginLoading(true);
 
     setTimeout(() => {
-      // Faz o escaneamento rigoroso do banco de dados local (localStorage)
+      // Procura a combinação exata de CPF e Senha cadastrados
       const foundUser = users.find(u => u.cpf === cleanCpf && u.password === loginForm.password);
 
       if (foundUser) {
@@ -202,7 +174,7 @@ export default function App() {
         setActiveTab('dashboard');
         setLoginForm({ cpf: '', password: '' });
       } else {
-        alert('Acesso Negado: CPF ou senha incorreta na base de dados.');
+        alert('Acesso Negado: CPF ou senha incorreta na base de dados municipal.');
       }
       setLoginLoading(false);
     }, 1000);
@@ -214,7 +186,7 @@ export default function App() {
     setLoginForm({ cpf: '', password: '' });
   };
 
-  // --- DADOS INSTITUCIONAIS ADICIONAIS ---
+  // --- DADOS ADICIONAIS ---
   const [companies] = useState([
     { id: 'EMP-041', name: 'Mineração Vale do Araguaia', sector: 'Industrial', status: 'Regular', doc: 'LO' },
     { id: 'EMP-042', name: 'Lava-Jato Daiane', sector: 'Serviços / Comercial', status: 'Notificado', doc: 'LO' },
@@ -248,7 +220,7 @@ export default function App() {
           <form onSubmit={handleLoginSubmit} className="p-6 space-y-4" autoComplete="off">
             <div className="text-center pb-2">
               <h3 className="text-lg font-bold text-slate-800">Autenticação com Chave CPF</h3>
-              <p className="text-xs text-slate-500 mt-1">O sistema efetuará a busca e validação na base local persistida.</p>
+              <p className="text-xs text-slate-500 mt-1">Insira as credenciais vinculadas ao banco de dados.</p>
             </div>
 
             <div>
@@ -307,7 +279,7 @@ export default function App() {
     );
   }
 
-  // --- RENDERIZAÇÃO DA PLATAFORMA MUNICIPAL ---
+  // --- PLATAFORMA ---
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex font-sans selection:bg-blue-100 selection:text-blue-900">
       
@@ -361,7 +333,7 @@ export default function App() {
               <Building2 size={16} /> Cadastro de Empresas
             </button>
 
-            {/* Restrição RBAC: Apenas ADMIN e ANALISTA enxergam a aba de criação */}
+            {/* Restrição RBAC ativa */}
             {currentUser.role !== 'FISCAL' && (
               <button 
                 onClick={() => setActiveTab('create-user')}
@@ -503,7 +475,6 @@ export default function App() {
                           </div>
                         </div>
 
-                        {/* Restrição de emissão para nível FISCAL */}
                         <button 
                           onClick={() => handlePrintSimulation(lic.id)}
                           disabled={printingId !== null || lic.status === 'Pendente' || currentUser.role === 'FISCAL'}
@@ -572,7 +543,7 @@ export default function App() {
             </div>
           )}
 
-          {/* --- TAB 3: CONTROLE RBAC PERSISTIDO --- */}
+          {/* --- TAB 3: GESTÃO DE ACESSOS INSTITUCIONAIS --- */}
           {activeTab === 'create-user' && currentUser.role !== 'FISCAL' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
               
