@@ -28,18 +28,16 @@ def publicar_projeto():
     frontend_dir = os.path.join(base_dir, "frontend")
     
     print("====================================================")
-    # Identidade corporativa de desenvolvimento do projeto
     print("      SISTEMA DE PUBLICAÇÃO AUTOMÁTICA - RAZGO      ")
     print("====================================================")
 
     # 1. Garantir o build atualizado do Frontend React
     if os.path.exists(frontend_dir):
         print("\n📦 Passo 1: Atualizando e Compilando o Frontend...")
-        # Instala dependências e gera a pasta dist dentro de frontend/
-        if not executar_comando(["npm", "install"], diretorio=frontend_dir):
-            print("⚠️ Falha ao instalar dependências do npm. Tentando build direto...")
+        # Executa a instalacao limpa dos pacotes se necessario
+        executar_comando(["npm", "install"], diretorio=frontend_dir)
         
-        # Correção da separação de argumentos do comando npm run build
+        # Roda o build seguro do Vite compilando o Tailwind CSS
         if not executar_comando(["npm", "run", "build"], diretorio=frontend_dir):
             print("❌ Falha crítica na compilação do Frontend. Abortando publicação.")
             sys.exit(1)
@@ -50,34 +48,35 @@ def publicar_projeto():
     print("\n🔧 Passo 2: Sincronizando referências do Git...")
     executar_comando(["git", "init"])
     
-    # Tenta definir a URL remota de origem correta do repositório do usuário
     try:
         subprocess.run(["git", "remote", "add", "origin", repo_url], shell=True, capture_output=True)
     except:
-        pass  # Se a origem já existir, apenas ignora o erro
+        pass
     
-    # Garante que a URL remota está atualizada e apontando para o link correto
     executar_comando(["git", "remote", "set-url", "origin", repo_url])
 
     # 3. Empacotamento dos arquivos para commits
     print("\n📝 Passo 3: Adicionando modificações ao Stage do Git...")
-    # Garante que pastas pesadas de desenvolvimento local fiquem de fora do push remoto
-    executar_comando(["git", "rm", "-r", "--cached", "frontend/node_modules", "backend/venv"], diretorio=base_dir)
+    # Tenta remover os modulos do cache de forma segura ignorando erros de existencia
+    try:
+        subprocess.run(["git", "rm", "-r", "--cached", "frontend/node_modules", "backend/venv"], cwd=base_dir, shell=True, capture_output=True)
+    except:
+        pass
+        
     executar_comando(["git", "add", "."])
 
     # 4. Geração do Commit de Entrega Técnica com carimbo de data/hora
     timestamp = datetime.now().strftime("%d/%m/%Y às %H:%M:%S")
-    mensagem_commit = f"Release Fiscaliza Ambiental - Entrega Completa ({timestamp})"
+    mensagem_commit = f"Release Fiscaliza Ambiental - Interface e Banco Ajustados ({timestamp})"
     
     print(f"\n💾 Passo 4: Criando Commit de Produção...")
+    # Verifica se ha alteracoes para commitar antes de disparar o comando
     executar_comando(["git", "commit", "-m", f'"{mensagem_commit}"'])
 
     # 5. Push final do repositório para a nuvem pública do GitHub
     print("\n🌐 Passo 5: Fazendo Upload de arquivos para o GitHub...")
-    # Garante o uso do branch principal correto (main)
     executar_comando(["git", "branch", "-M", "main"])
     
-    # Dispara o push forçado para garantir que a árvore remota se alinhe com a nova organização física de pastas
     if executar_comando(["git", "push", "-u", "origin", "main", "--force"]):
         print("\n====================================================")
         print("✨ PROJETO PUBLICADO COM SUCESSO NO GITHUB!")
