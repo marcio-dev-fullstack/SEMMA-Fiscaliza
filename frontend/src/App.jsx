@@ -17,7 +17,8 @@ import {
   Zap,
   Printer,
   FileCheck,
-  UserCheck
+  UserCheck,
+  UserPlus
 } from 'lucide-react';
 
 // --- CARD DE MÉTRICA EMPRESARIAL ---
@@ -65,7 +66,10 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [printingId, setPrintingId] = useState(null);
 
-  // --- DADOS DO USUÁRIO LOGADO (MÓDULO DE GESTÃO DE SERVIDORES) ---
+  // --- FORMULÁRIO DE NOVO USUÁRIO ---
+  const [newUser, setNewUser] = useState({ name: '', role: '', email: '', password: '' });
+
+  // --- DADOS DO USUÁRIO LOGADO ---
   const [currentUser] = useState({
     name: 'Márcio Rodrigues de Oliveira',
     role: 'Civil Engineer / Fiscal Municipal'
@@ -79,6 +83,12 @@ export default function App() {
   const handlePrintSimulation = (id) => {
     setPrintingId(id);
     setTimeout(() => setPrintingId(null), 1200);
+  };
+
+  const handleCreateUserSubmit = (e) => {
+    e.preventDefault();
+    alert(`Usuário ${newUser.name} cadastrado com sucesso no sistema!`);
+    setNewUser({ name: '', role: '', email: '', password: '' });
   };
 
   // --- MÓDULO: CADASTRO DE EMPRESAS ---
@@ -131,44 +141,50 @@ export default function App() {
             </div>
           </div>
 
-          {/* Menus de Navegação */}
+          {/* Menus de Navegação Lateral */}
           <nav className="p-3 space-y-1">
-            {[
-              { id: 'dashboard', label: 'Painel de Licenciamento', icon: BarChart3 },
-              { id: 'companies', label: 'Cadastro de Empresas', icon: Building2 },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              const isSelected = activeTab === tab.id;
-              return (
-                <button 
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    isSelected 
-                      ? 'bg-blue-600 text-white' 
-                      : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
-                  }`}
-                >
-                  <Icon size={16} /> 
-                  {tab.label}
-                </button>
-              );
-            })}
+            <button 
+              onClick={() => setActiveTab('dashboard')}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === 'dashboard' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+              }`}
+            >
+              <BarChart3 size={16} /> Painel de Licenciamento
+            </button>
+
+            <button 
+              onClick={() => setActiveTab('companies')}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === 'companies' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+              }`}
+            >
+              <Building2 size={16} /> Cadastro de Empresas
+            </button>
+
+            {/* NOVA ABA ADICIONADA AQUI */}
+            <button 
+              onClick={() => setActiveTab('create-user')}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === 'create-user' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-100'
+              }`}
+            >
+              <UserPlus size={16} /> Criar Novo Usuário
+            </button>
           </nav>
         </div>
 
         {/* Rodapé Administrativo */}
         <div className="p-4 border-t border-slate-800 bg-slate-950/40 text-center">
           <p className="text-[11px] font-medium tracking-wider text-slate-500 uppercase">
-            Plataforma <span className="text-slate-300 font-bold">MAZZ</span>[cite: 1]
+            Plataforma <span className="text-slate-300 font-bold">MAZZ</span>
           </p>
           <p className="text-[10px] font-mono text-slate-600 mt-0.5">
-            Desenvolvido por <span className="text-slate-400 font-semibold">RAZGO</span>[cite: 1]
+            Desenvolvido por <span className="text-slate-400 font-semibold">RAZGO</span>
           </p>
         </div>
       </aside>
 
-      {/* --- CONTEÚDO PRINCIPAL (EMPRESARIAL BRANCO) --- */}
+      {/* --- CONTEÚDO PRINCIPAL --- */}
       <div className="flex-1 lg:pl-64 flex flex-col min-h-screen w-full">
         
         {/* Topbar Corporativa */}
@@ -179,14 +195,13 @@ export default function App() {
             </button>
             <div>
               <h2 className="text-base font-bold text-slate-800 tracking-tight">
-                {activeTab === 'dashboard' ? 'Atos Autorizativos Homologados' : 'Gestão de Cadastros Ambientais'}[cite: 1]
+                {activeTab === 'dashboard' ? 'Atos Autorizativos Homologados' : activeTab === 'companies' ? 'Gestão de Cadastros Ambientais' : 'Controle de Acessos Institucionais'}
               </h2>
             </div>
           </div>
 
           {/* Identificação e Pesquisa */}
           <div className="flex items-center gap-6">
-            {/* Bloco do Usuário Ativo com Cargo na Topbar */}
             <div className="hidden sm:flex flex-col text-right border-r border-slate-200 pr-4">
               <span className="text-xs font-bold text-slate-800">{currentUser.name}</span>
               <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">{currentUser.role}</span>
@@ -198,7 +213,7 @@ export default function App() {
               </span>
               <input
                 type="text"
-                placeholder="Filtrar processos vigentes..."
+                placeholder="Pesquisar..."
                 className="w-56 pl-9 pr-4 py-1.5 bg-slate-100 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-700 placeholder-slate-400"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -222,17 +237,17 @@ export default function App() {
               <div className="p-2 bg-amber-100 text-amber-700 rounded-lg"><Clock size={16} /></div>
               <div>
                 <h4 className="text-xs font-bold text-slate-800">Licença de Uso Comercial Ativa</h4>
-                <p className="text-xs text-slate-500 mt-0.5">Emissão automatizada via WeasyPrint e ReportLab liberada para o município[cite: 1].</p>
+                <p className="text-xs text-slate-500 mt-0.5">Emissão automatizada via WeasyPrint e ReportLab liberada para o município.</p>
               </div>
             </div>
             <span className="bg-amber-100 text-amber-800 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md border border-amber-200">
-              180 dias restantes[cite: 1]
+              180 dias restantes
             </span>
           </div>
 
+          {/* --- TAB 1: DASHBOARD DE LICENCIAMENTO --- */}
           {activeTab === 'dashboard' && (
             <>
-              {/* INDICADORES EXCLUSIVOS DE LICENÇAS */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 <MetricCard title="Total de Licenças" value="12" icon={Award} change="Atos Regulatórios" type="success" />
                 <MetricCard title="Licença Prévia (LP)" value="04" icon={FileText} change="Análise de Viabilidade" type="warning" />
@@ -240,45 +255,41 @@ export default function App() {
                 <MetricCard title="Licença Operação (LO)" value="05" icon={Zap} change="Atividades Autorizadas" type="success" />
               </div>
 
-              {/* SEÇÃO DA DASHBOARD: MOTOR DE DOCUMENTOS */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-5 border-b border-slate-200 bg-slate-50/50">
                   <h3 className="font-bold text-sm text-slate-800 flex items-center gap-2">
-                    <Award size={16} className="text-blue-600" /> Emissão Unificada de Licenças Ambientais (LP, LI, LO)[cite: 1]
+                    <Award size={16} className="text-blue-600" /> Emissão Unificada de Licenças Ambientais (LP, LI, LO)
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">Impressão autenticada e imutável de atos regulatórios com chaves de segurança individuais[cite: 1].</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Impressão autenticada e imutável de atos regulatórios com chaves de segurança individuais.</p>
                 </div>
 
-                {/* GRID DE LICENÇAS DISPONÍVEIS */}
                 <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-5 bg-white">
                   {filteredLicenses.map((lic) => (
                     <div 
                       key={lic.id} 
                       className="bg-white rounded-lg p-4 border border-slate-200 hover:border-slate-300 transition-all flex flex-col justify-between relative overflow-hidden shadow-sm group"
                     >
-                      {/* MARCA D'ÁGUA REQUERIDA NO FUNDO DO CARD */}
                       <div className="absolute -right-3 -bottom-3 opacity-[0.04] text-slate-900 font-extrabold select-none pointer-events-none text-6xl uppercase tracking-tighter">
-                        {lic.type.split(' ')[0]}[cite: 1]
+                        {lic.type.split(' ')[0]}
                       </div>
 
                       <div>
                         <div className="flex items-center justify-between gap-2 mb-3">
                           <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded border ${lic.color}`}>
-                            {lic.type}[cite: 1]
+                            {lic.type}
                           </span>
                           <span className="text-[10px] font-mono text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">{lic.id}</span>
                         </div>
 
-                        <h4 className="text-sm font-bold text-slate-800 line-clamp-1">{lic.company}[cite: 1]</h4>
+                        <h4 className="text-sm font-bold text-slate-800 line-clamp-1">{lic.company}</h4>
                         <p className="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
-                          <Lock size={12} className="text-slate-400" /> Campos protegidos pós-emissão[cite: 1]
+                          <Lock size={12} className="text-slate-400" /> Campos protegidos pós-emissão
                         </p>
                       </div>
 
-                      {/* EXTRAÇÃO E AUTENTICIDADE */}
                       <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md">
-                          <QrCode size={14} className="text-slate-500" />[cite: 1]
+                          <QrCode size={14} className="text-slate-500" />
                           <div className="text-[9px] font-mono leading-tight">
                             <span className="text-slate-400 block uppercase">Token</span>
                             <span className="text-slate-700 font-bold">{lic.token}</span>
@@ -302,7 +313,7 @@ export default function App() {
                           ) : (
                             <>
                               <Download size={12} />
-                              <span>Gerar PDF</span>[cite: 1]
+                              <span>Gerar PDF</span>
                             </>
                           )}
                         </button>
@@ -314,12 +325,12 @@ export default function App() {
             </>
           )}
 
-          {/* TAB: CADASTRO DE EMPRESAS */}
+          {/* --- TAB 2: CADASTRO DE EMPRESAS --- */}
           {activeTab === 'companies' && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="p-5 border-b border-slate-200 bg-slate-50/50">
                 <h3 className="font-bold text-sm text-slate-800">Cadastro de Contribuintes</h3>
-                <p className="text-xs text-slate-500 mt-0.5">Relação cadastral completa de empresas monitoradas no município[cite: 1].</p>
+                <p className="text-xs text-slate-500 mt-0.5">Relação cadastral completa de empresas monitoradas no município.</p>
               </div>
 
               <div className="overflow-x-auto">
@@ -337,15 +348,15 @@ export default function App() {
                     {filteredCompanies.length > 0 ? (filteredCompanies.map(comp => (
                       <tr key={comp.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="p-3 pl-5 font-mono font-bold text-blue-600">{comp.id}</td>
-                        <td className="p-3 font-semibold text-slate-800">{comp.name}[cite: 1]</td>
-                        <td className="p-3 text-slate-500">{comp.sector}[cite: 1]</td>
-                        <td className="p-3 font-mono text-xs text-blue-500 font-bold">{comp.doc}[cite: 1]</td>
+                        <td className="p-3 font-semibold text-slate-800">{comp.name}</td>
+                        <td className="p-3 text-slate-500">{comp.sector}</td>
+                        <td className="p-3 font-mono text-xs text-blue-500 font-bold">{comp.doc}</td>
                         <td className="p-3 text-center">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold ${
                             comp.status === 'Regular' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 
                             comp.status === 'Notificado' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 
                             'bg-rose-50 text-rose-700 border border-rose-200'
-                          }`}>{comp.status}[cite: 1]</span>
+                          }`}>{comp.status}</span>
                         </td>
                       </tr>
                     ))) : (
@@ -356,6 +367,77 @@ export default function App() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* --- TAB 3: FORMULÁRIO COMPLETO DE CRIAR NOVO USUÁRIO --- */}
+          {activeTab === 'create-user' && (
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm max-w-2xl mx-auto overflow-hidden">
+              <div className="p-5 border-b border-slate-200 bg-slate-50/50">
+                <h3 className="font-bold text-sm text-slate-800 flex items-center gap-2">
+                  <UserPlus size={16} className="text-blue-600" /> Cadastrar Novo Servidor / Usuário do Sistema
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">Forneça as credenciais oficiais e atribua o respectivo cargo regulamentado para controle RBAC.</p>
+              </div>
+
+              <form onSubmit={handleCreateUserSubmit} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Nome Completo</label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="Ex: Ana Maria Silva"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 placeholder-slate-400"
+                    value={newUser.name}
+                    onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Cargo / Função RBAC</label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="Ex: Analista Ambiental / Fiscal Operacional"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 placeholder-slate-400"
+                    value={newUser.role}
+                    onChange={(e) => setNewUser({...newUser, role: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">E-mail Institucional</label>
+                  <input 
+                    type="email" 
+                    required
+                    placeholder="usuario@municipio.pa.gov.br"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 placeholder-slate-400"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">Senha Provisória</label>
+                  <input 
+                    type="password" 
+                    required
+                    placeholder="••••••••"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-800 placeholder-slate-400"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                  />
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex justify-end">
+                  <button 
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs uppercase tracking-wider px-4 py-2.5 rounded-lg shadow-sm transition-all"
+                  >
+                    Gravar Usuário no Banco
+                  </button>
+                </div>
+              </form>
             </div>
           )}
 
