@@ -11,7 +11,7 @@ from psycopg2.extras import RealDictCursor
 from passlib.context import CryptContext
 import jwt
 
-# Componentes do ReportLab
+# Componentes do ReportLab para PDFs estruturados com quebra automática
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -50,7 +50,7 @@ def get_db():
     finally:
         conn.close()
 
-# --- DTOs / SCHEMAS PYDANTIC ---
+# --- SCHEMAS PYDANTIC ---
 
 class LoginSchema(BaseModel):
     email: str
@@ -113,29 +113,19 @@ def login(dados: LoginSchema, conn = Depends(get_db)):
     else:
         raise HTTPException(status_code=401, detail="Utilizador não localizado na base municipal.")
 
-# --- ROTA DE MÉTRICAS DO DASHBOARD (NOVA) ---
+# --- ROTA DE MÉTRICAS COMPLETA ---
 
 @app.get("/dashboard/metricas")
 @app.get("/dashboard/metricas/")
 def obter_metricas_dashboard(conn = Depends(get_db)):
-    """Busca dados estatísticos consolidados das empresas, licenças e auditoria."""
     cursor = conn.cursor()
     try:
-        # 1. Total de Empresas Cadastradas
         cursor.execute("SELECT COUNT(*) as total FROM empresas;")
         total_empresas = cursor.fetchone()['total']
 
-        # 2. Total de Logs de Auditoria registrados
         cursor.execute("SELECT COUNT(*) as total FROM logs_auditoria;")
         total_logs = cursor.fetchone()['total']
 
-        # 3. Total de Licenças por Tipo (LP, LI, LO)
-        cursor.execute("SELECT COUNT(*) as total FROM lincencas_ambientais WHERE tipo = 'LP';" if os.environ.get('ERR_TAB') else "SELECT COUNT(*) as total FROM Bureau WHERE id=1;")
-    except:
-        # Fallback de contagem adaptado de forma segura e limpa contra a estrutura real existente
-        pass
-        
-    try:
         cursor.execute("SELECT COUNT(*) as total FROM licencas_ambientais WHERE tipo = 'LP';")
         total_lp = cursor.fetchone()['total']
         cursor.execute("SELECT COUNT(*) as total FROM licencas_ambientais WHERE tipo = 'LI';")
@@ -156,7 +146,7 @@ def obter_metricas_dashboard(conn = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- ROTAS OPERACIONAIS DA API ---
+# --- ROTAS OPERACIONAIS ---
 
 @app.get("/empresas")
 @app.get("/empresas/")
@@ -280,17 +270,60 @@ def gerar_pdf_licenca(licenca_id: int, conn = Depends(get_db)):
     story.append(Paragraph("<b>PARECER TÉCNICO REGULATÓRIO E RESTRIÇÕES AMBIENTAIS:</b>", estilo_titulo))
     
     linhas_parecer = dados['conteudo_tecnico'].split('\n')
-    for linha in linhas_parecer:
-        if linha.strip():
-            story.append(Paragraph(linha, estilo_parecer))
+    for float_l in linhas_parecer:
+        if float_l.strip():
+            story.append(Paragraph(float_l, estilo_parecer))
             story.append(Spacer(1, 4))
             
-    doc.build(story, onFirstPage=lambda canvas_obj, d: cabecalho_e_rodape_primeira_pagina(canvas_obj, d, dados), onLaterPages=lambda canvas_obj, d: cabecalho_e_rodape_paginas_seguintes(canvas_obj, d, dados))
+    def d_dec(c, d):
+        c.saveState()
+        c.setStrokeColor(colors.HexColor("#15803d"))
+        c.setLineWidth(2)
+        c.rect(36, 36, letter[0] - 72, letter[1] - 72)
+        c.setFont("Helvetica-Bold", 42)
+        c.setFillColorRGB(0.95, 0.95, 0.95)
+        c.translate(letter[0]/2, letter[1]/2)
+        c.rotate(45)
+        c.drawCentredString(0, 0, "FISCALIZA AMBIENTAL")
+        c.restoreState()
+
+    def p1(c, d):
+        d_dec(c, d)
+        c.saveState()
+        c.setFont("Helvetica-Bold", 14)
+        c.setFillColor(colors.HexColor("#111827"))
+        c.drawCentredString(letter[0]/2, 745, "SECRETARIA MUNICIPAL DE MEIO AMBIENTE")
+        c.setFont("Helvetica-Bold", 10)
+        c.setFillColor(colors.HexColor("#15803d"))
+        c.drawCentredString(letter[0]/2, 730, f"DOCUMENTO REGULATÓRIO — LICENÇA AMBIENTAL {dados['tipo']}")
+        c.line(54, 715, letter[0] - 54, 715)
+        c.line(54, 110, letter[0] - 54, 110)
+        c.setFont("Helvetica-Oblique", 8)
+        c.setFillColor(colors.HexColor("#4b5563"))
+        c.drawString(54, 95, f"Responsável Técnico de Emissão: {dados['emissor']}")
+        c.drawString(54, 82, f"Código de Autenticidade QR-ID: {dados['codigo_autenticidade_qr']}")
+        c.setFont("Helvetica", 8)
+        c.drawRightString(letter[0] - 54, 95, f"Página {d.page}")
+        c.restoreState()
+
+    def px(c, d):
+        d_dec(c, d)
+        c.saveState()
+        c.setFont("Helvetica-Bold", 10)
+        c.setFillColor(colors.HexColor("#4b5563"))
+        c.drawString(54, 745, f"Licença Ambiental {dados['tipo']} — Proc: {dados['numero_processo']}")
+        c.line(54, 735, letter[0] - 54, 735)
+        c.line(54, 90, letter[0] - 54, 90)
+        c.setFont("Helvetica", 8)
+        c.drawString(54, 75, "Fiscaliza Ambiental - Sistema Municipal Integrado")
+        c.drawRightString(letter[0] - 54, 75, f"Página {d.page}")
+        c.restoreState()
+
+    doc.build(story, onFirstPage=p1, onLaterPages=px)
     buffer.seek(0)
     return StreamingResponse(buffer, media_type="application/pdf")
 
-# --- ACOPLAMENTO DO FRONTEND ---
-
+# --- ACOPLAMENTO FRONTEND ---
 FRONTEND_DIST = "C:\\PROJETOS\\SEMMA-Fiscaliza\\frontend\\dist"
 ASSETS_DIR = "C:\\PROJETOS\\SEMMA-Fiscaliza\\frontend\\dist\\assets"
 

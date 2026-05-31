@@ -1,492 +1,404 @@
 import React, { useState, useEffect } from 'react';
-import Login from './Login';
+import { 
+  Bus, 
+  Users, 
+  MapPin, 
+  ShieldAlert, 
+  FileText, 
+  BarChart3, 
+  Search, 
+  CheckCircle, 
+  AlertTriangle, 
+  Clock, 
+  Menu, 
+  X,
+  TrendingUp,
+  Eye,
+  Zap,
+  RefreshCw,
+  Bell
+} from 'lucide-react';
 
-export default function App() {
-  const [usuario, setUsuario] = useState(null);
-  const [telaAtual, setTelaAtual] = useState('painel'); // 'painel', 'emitir_licenca', 'listar_empresas', 'auditoria', 'nova_empresa'
-  const [empresas, setEmpresas] = useState([]);
-  const [logs, setLogs] = useState([]);
-  
-  // Estado das Métricas Estatísticas
-  const [metricas, setMetricas] = useState({
-    empresas: 0,
-    logs: 0,
-    licencas: { lp: 0, li: 0, lo: 0, total: 0 }
-  });
-
-  // Estados do Formulário de Emissão
-  const [empresaId, setEmpresaId] = useState('');
-  const [tipoLicenca, setTipoLicenca] = useState('LP');
-  const [numeroProcesso, setNumeroProcesso] = useState('');
-  const [diasValidade, setDiasValidade] = useState('365');
-  const [conteudoTecnico, setConteudoTecnico] = useState('');
-  
-  // Estados do Formulário de Nova Empresa
-  const [novaRazao, setNovaRazao] = useState('');
-  const [novoCnpj, setNovoCnpj] = useState('');
-
-  // Estados de Notificação
-  const [mensagemSucesso, setMensagemSucesso] = useState('');
-  const [mensagemErro, setMensagemErro] = useState('');
-  const [carregando, setCarregando] = useState(false);
-
-  useEffect(() => {
-    const sessaoSalva = localStorage.getItem('usuario_logado');
-    if (sessaoSalva) {
-      setUsuario(JSON.parse(sessaoSalva));
-    }
-    buscarEmpresas();
-    buscarMetricasDashboard();
-  }, []);
-
-  const buscarMetricasDashboard = async () => {
-    try {
-      const resposta = await fetch('http://127.0.0.1:8000/dashboard/metricas');
-      if (resposta.ok) {
-        const dados = await resposta.json();
-        setMetricas(dados);
-      }
-    } catch (err) {
-      console.error("Erro ao carregar métricas estatísticas:", err);
-    }
+// --- CARD DE MÉTRICA ULTRA VIVO ---
+const MetricCard = ({ title, value, icon: Icon, change, type = 'default' }) => {
+  const styles = {
+    default: {
+      bg: 'from-blue-500/20 to-indigo-600/5 border-blue-500/30 text-blue-400',
+      iconBg: 'bg-gradient-to-br from-blue-500 to-indigo-600 shadow-blue-500/40 text-white',
+      badge: 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+    },
+    success: {
+      bg: 'from-emerald-500/20 to-teal-600/5 border-emerald-500/30 text-emerald-400',
+      iconBg: 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/40 text-white',
+      badge: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+    },
+    warning: {
+      bg: 'from-amber-500/20 to-orange-600/5 border-amber-500/30 text-amber-400',
+      iconBg: 'bg-gradient-to-br from-amber-500 to-orange-600 shadow-amber-500/40 text-white',
+      badge: 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+    },
+    danger: {
+      bg: 'from-rose-500/20 to-red-600/5 border-rose-500/30 text-rose-400',
+      iconBg: 'bg-gradient-to-br from-rose-500 to-red-600 shadow-rose-500/40 text-white',
+      badge: 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+    },
   };
-
-  const buscarEmpresas = async () => {
-    try {
-      const resposta = await fetch('http://127.0.0.1:8000/empresas');
-      if (resposta.ok) {
-        const dados = await resposta.json();
-        setEmpresas(dados);
-        if (dados.length > 0) {
-          setEmpresaId(dados[0].id.toString());
-        }
-      }
-    } catch (err) {
-      console.error("Erro ao buscar empresas:", err);
-    }
-  };
-
-  const buscarLogsAuditoria = async () => {
-    try {
-      const resposta = await fetch('http://127.0.0.1:8000/auditoria');
-      if (resposta.ok) {
-        const dados = await resposta.json();
-        setLogs(dados);
-        setTelaAtual('auditoria');
-      }
-    } catch (err) {
-      console.error("Erro ao carregar logs:", err);
-    }
-  };
-
-  const deslogarSistema = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('usuario_logado');
-    setUsuario(null);
-    setTelaAtual('painel');
-  };
-
-  const gerenciarEmissao = async (e) => {
-    e.preventDefault();
-    setMensagemSucesso('');
-    setMensagemErro('');
-    setCarregando(true);
-
-    const payload = {
-      empresa_id: parseInt(empresaId),
-      tipo: tipoLicenca,
-      numero_processo: numeroProcesso,
-      dias_validade: parseInt(diasValidade),
-      conteudo_tecnico: conteudoTecnico,
-      usuario_id: usuario.id
-    };
-
-    try {
-      const resposta = await fetch('http://127.0.0.1:8000/licencas/emitir', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const dados = await resposta.json();
-
-      if (resposta.ok) {
-        setMensagemSucesso(`Licença emitida com sucesso! ID: ${dados.licenca_id}. Abrindo documento...`);
-        setNumeroProcesso('');
-        setConteudoTecnico('');
-        buscarMetricasDashboard(); // Recarrega os gráficos na home
-        window.open(`http://127.0.0.1:8000/licencas/${dados.licenca_id}/pdf`, '_blank');
-      } else {
-        setMensagemErro(dados.detail || 'Erro ao processar emissão regulatória.');
-      }
-    } catch (err) {
-      setMensagemErro('Falha na comunicação com o servidor FastAPI.');
-    } finally {
-      setCarregando(false);
-    }
-  };
-
-  const gerenciarCadastroEmpresa = async (e) => {
-    e.preventDefault();
-    setMensagemSucesso('');
-    setMensagemErro('');
-    setCarregando(true);
-
-    const payload = {
-      razao_social: novaRazao,
-      cnpj: novoCnpj,
-      usuario_id: usuario.id
-    };
-
-    try {
-      const resposta = await fetch('http://127.0.0.1:8000/empresas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const dados = await resposta.json();
-
-      if (resposta.ok) {
-        setMensagemSucesso(`Empresa '${novaRazao}' cadastrada com sucesso na base municipal!`);
-        setNovaRazao('');
-        setNovoCnpj('');
-        await buscarEmpresas();
-        await buscarMetricasDashboard(); // Atualiza gráfico de volume
-      } else {
-        setMensagemErro(dados.detail || 'Erro ao salvar cadastro da empresa.');
-      }
-    } catch (err) {
-      setMensagemErro('Falha na conexão com a API de dados.');
-    } finally {
-      setCarregando(false);
-    }
-  };
-
-  // Cálculo percentual seguro para as barras de gráfico Tailwind
-  const maxLicencas = Math.max(metricas.licencas.lp, metricas.licencas.li, metricas.licencas.lo, 1);
-  const pctLP = (metricas.licencas.lp / maxLicencas) * 100;
-  const pctLI = (metricas.licencas.li / maxLicencas) * 100;
-  const pctLO = (metricas.licencas.lo / maxLicencas) * 100;
-
-  if (!usuario) {
-    return <Login onLoginSuccess={(dados) => setUsuario(dados)} />;
-  }
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans antialiased text-gray-900">
-      {/* Barra de Navegação Superior */}
-      <nav className="bg-green-700 text-white shadow-md px-6 py-4 flex justify-between items-center">
-        <div className="cursor-pointer" onClick={() => { setTelaAtual('painel'); setMensagemSucesso(''); setMensagemErro(''); buscarMetricasDashboard(); }}>
-          <h1 className="text-xl font-black tracking-tight uppercase">FISCALIZA AMBIENTAL</h1>
-          <p className="text-xs text-green-100 font-medium">Painel Integrado de Controle Municipal</p>
-        </div>
-        <div className="flex items-center space-x-4">
-          <div className="text-right">
-            <p className="text-sm font-bold leading-tight">{usuario.nome}</p>
-            <span className="inline-block mt-1 text-[10px] bg-green-800 px-2 py-0.5 rounded text-green-200 font-bold uppercase tracking-wider">
-              {usuario.perfil}
-            </span>
-          </div>
-          <button 
-            onClick={deslogarSistema}
-            className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors shadow-sm focus:outline-none"
-          >
-            Sair
-          </button>
-        </div>
-      </nav>
+    <div className={`bg-gradient-to-br ${styles[type].bg} backdrop-blur-md p-6 rounded-2xl border shadow-xl shadow-slate-950/20 transform hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 flex items-start justify-between group`}>
+      <div className="space-y-2">
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{title}</p>
+        <h3 className="text-4xl font-black text-white tracking-tight drop-shadow-sm">{value}</h3>
+        {change && (
+          <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full inline-block ${styles[type].badge}`}>
+            {change}
+          </span>
+        )}
+      </div>
+      <div className={`p-3.5 rounded-xl ${styles[type].iconBg} shadow-lg group-hover:rotate-12 transition-transform duration-300`}>
+        <Icon size={22} />
+      </div>
+    </div>
+  );
+};
 
-      <main className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+export default function App() {
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Simulação de pulso/atualização ao vivo
+  const triggerRefresh = () => {
+    setIsRefreshing(true);
+    setTimeout(() => setIsRefreshing(false), 800);
+  };
+
+  const [routes] = useState([
+    { id: 1, name: 'Rota 01 - Zona Rural Norte', driver: 'Carlos Silva', status: 'Em Rota', students: 42, delay: 'Nenhum' },
+    { id: 2, name: 'Rota 02 - Setor Industrial', driver: 'Ana Oliveira', status: 'Atrasado', students: 28, delay: '15 min' },
+    { id: 3, name: 'Rota 03 - Perímetro Urbano Central', driver: 'Marcos Souza', status: 'Concluído', students: 55, delay: 'Nenhum' },
+    { id: 4, name: 'Rota 04 - Vila Rica Escolar', driver: 'João Costa', status: 'Manutenção', students: 0, delay: '-' },
+  ]);
+
+  const [actions] = useState([
+    { id: 'Ação #01', title: 'Auditoria de Contratos de Combustível da Frota', category: 'Transparência', status: 'Concluído', date: '28/05/2026', views: 342 },
+    { id: 'Ação #02', title: 'Fiscalização de Obras de Pavimentação Urbana', category: 'Infraestrutura', status: 'Em Andamento', date: '29/05/2026', views: 512 },
+    { id: 'Ação #03', title: 'Análise de Repasses do PNATE (Transporte Escolar)', category: 'Fiscalização', status: 'Análise', date: '30/05/2026', views: 189 },
+  ]);
+
+  const filteredRoutes = routes.filter(r => r.name.toLowerCase().includes(searchTerm.toLowerCase()) || r.driver.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredActions = actions.filter(a => a.title.toLowerCase().includes(searchTerm.toLowerCase()) || a.id.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex font-sans selection:bg-cyan-500 selection:text-slate-900">
+      
+      {/* --- SIDEBAR CYBERPUNK / PREMIUM --- */}
+      <aside className={`bg-slate-900 fixed inset-y-0 left-0 z-30 w-64 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 transition-transform duration-300 ease-out border-r border-slate-800 flex flex-col justify-between shadow-2xl shadow-black`}>
+        <div>
+          {/* Header */}
+          <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-tr from-cyan-500 to-blue-600 p-2 rounded-xl text-white shadow-lg shadow-cyan-500/30 animate-pulse">
+                <Bus size={20} />
+              </div>
+              <div>
+                <h1 className="font-black text-base uppercase tracking-wider bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">TransPorte CDA</h1>
+                <span className="text-[10px] text-cyan-400 font-bold tracking-widest block -mt-0.5">SISTEMA MAZZ</span>
+              </div>
+            </div>
+            <button onClick={() => setSidebarOpen(false)} className="lg:hidden text-slate-400 hover:text-white transition-colors">
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Links Emborrachados/Animados */}
+          <nav className="p-4 space-y-2">
+            {[
+              { id: 'dashboard', label: 'Painel Geral', icon: BarChart3 },
+              { id: 'routes', label: 'Rotas e Telemetria', icon: MapPin },
+              { id: 'fiscalization', label: 'Fiscalização Ativa', icon: ShieldAlert },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isSelected = activeTab === tab.id;
+              return (
+                <button 
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                    isSelected 
+                      ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/10 text-cyan-400 border border-cyan-500/30 shadow-lg shadow-cyan-500/5' 
+                      : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 border border-transparent'
+                  }`}
+                >
+                  <Icon size={18} className={isSelected ? 'text-cyan-400' : 'text-slate-400'} /> 
+                  {tab.label}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Rodapé Tech */}
+        <div className="p-4 border-t border-slate-800 bg-slate-950/60 text-center">
+          <div className="flex items-center justify-center gap-1.5 text-[10px] font-mono tracking-widest text-slate-500">
+            ENGINE BY <span className="text-cyan-400 font-black drop-shadow-[0_0_6px_rgba(34,211,238,0.4)]">RAZGO</span> 2026
+          </div>
+        </div>
+      </aside>
+
+      {/* --- CONTEÚDO PRINCIPAL (DARK MODE VIVO) --- */}
+      <div className="flex-1 lg:pl-64 flex flex-col min-h-screen w-full transition-all duration-300">
         
-        {telaAtual === 'painel' && (
-          /* TELA 01: PAINEL PRINCIPAL COM BLOCOS GRÁFICOS */
-          <div className="space-y-8">
-            
-            {/* LINHA 1: CARD DE CONTADORES RÁPIDOS */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Empresas Monitoradas</p>
-                <p className="text-3xl font-black text-gray-800 mt-1">{metricas.empresas}</p>
-              </div>
-              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Total de Licenças Emitidas</p>
-                <p className="text-3xl font-black text-green-700 mt-1">{metricas.licencas.total}</p>
-              </div>
-              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-400">Operações Auditadas (RBAC)</p>
-                <p className="text-3xl font-black text-blue-700 mt-1">{metricas.logs}</p>
-              </div>
-            </div>
-
-            {/* LINHA 2: GRÁFICOS DE BARRAS VIA TAILWIND NATIVO */}
-            <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-700 border-b border-gray-100 pb-3 mb-5">
-                Volumetria de Certidões Regulatórias por Categoria
-              </h3>
-              
-              <div className="space-y-4 max-w-xl">
-                {/* Barra LP */}
-                <div>
-                  <div className="flex justify-between text-xs font-bold text-gray-600 mb-1">
-                    <span>LP — Licença Prévia</span>
-                    <span>{metricas.licencas.lp} emitidas</span>
-                  </div>
-                  <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
-                    <div className="bg-yellow-500 h-full rounded-full transition-all duration-500" style={{ width: `${pctLP}%` }}></div>
-                  </div>
-                </div>
-
-                {/* Barra LI */}
-                <div>
-                  <div className="flex justify-between text-xs font-bold text-gray-600 mb-1">
-                    <span>LI — Licença de Instalação</span>
-                    <span>{metricas.licencas.li} emitidas</span>
-                  </div>
-                  <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
-                    <div className="bg-orange-500 h-full rounded-full transition-all duration-500" style={{ width: `${pctLI}%` }}></div>
-                  </div>
-                </div>
-
-                {/* Barra LO */}
-                <div>
-                  <div className="flex justify-between text-xs font-bold text-gray-600 mb-1">
-                    <span>LO — Licença de Operação</span>
-                    <span>{metricas.licencas.lo} emitidas</span>
-                  </div>
-                  <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
-                    <div className="bg-green-600 h-full rounded-full transition-all duration-500" style={{ width: `${pctLO}%` }}></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* LINHA 3: CARD DE AÇÕES OPERACIONAIS */}
-            <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-gray-700 border-b border-gray-100 pb-3 mb-6">
-                Módulos Administrativos Disponíveis
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="border border-gray-200 rounded-xl p-6 hover:border-green-600 hover:shadow-md transition-all bg-gray-50 flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-extrabold text-lg text-gray-800 mb-2">Emitir Licença Ambiental</h3>
-                    <p className="text-sm text-gray-500 mb-4 leading-relaxed">Geração automática de minutas com criptografia de QR Code imutável.</p>
-                  </div>
-                  <button onClick={() => setTelaAtual('emitir_licenca')} className="text-xs font-bold text-left text-green-600 hover:text-green-700 focus:outline-none">
-                    Acessar Módulo &rarr;
-                  </button>
-                </div>
-
-                <div className="border border-gray-200 rounded-xl p-6 hover:border-green-600 hover:shadow-md transition-all bg-gray-50 flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-extrabold text-lg text-gray-800 mb-2">Empresas Cadastradas</h3>
-                    <p className="text-sm text-gray-500 mb-4 leading-relaxed">Consulte a situação cadastral e o histórico de vistorias das empresas locais no banco.</p>
-                  </div>
-                  <button onClick={() => { buscarEmpresas(); setTelaAtual('listar_empresas'); }} className="text-xs font-bold text-left text-green-600 hover:text-green-700 focus:outline-none">
-                    Consultar Empresas &rarr;
-                  </button>
-                </div>
-
-                <div className="border border-gray-200 rounded-xl p-6 hover:border-green-600 hover:shadow-md transition-all bg-gray-50 flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-extrabold text-lg text-gray-800 mb-2">Logs de Auditoria (RBAC)</h3>
-                    <p className="text-sm text-gray-500 mb-4 leading-relaxed">Trilha imutável de segurança jurídica registrando ações executadas pelos analistas.</p>
-                  </div>
-                  <button onClick={buscarLogsAuditoria} className="text-xs font-bold text-left text-green-600 hover:text-green-700 focus:outline-none">
-                    Exibir Logs &rarr;
-                  </button>
-                </div>
-              </div>
+        {/* Topbar Flutuante */}
+        <header className="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 h-16 flex items-center justify-between px-6 sticky top-0 z-20 shadow-lg">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-slate-400 hover:text-white transition-colors lg:hidden">
+              <Menu size={24} />
+            </button>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+              <h2 className="text-lg font-black tracking-tight text-white capitalize">
+                {activeTab === 'dashboard' ? 'Centro de Comando' : activeTab === 'routes' ? 'Radar de Operações' : 'Controle de Auditorias'}
+              </h2>
             </div>
           </div>
-        )}
 
-        {telaAtual === 'emitir_licenca' && (
-          /* TELA 02: FORMULÁRIO DE EMISSÃO */
-          <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200 max-w-2xl mx-auto">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-gray-800">Nova Emissão de Licença Ambiental</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Preencha os pareceres e os dados do processo regulatório</p>
-              </div>
-              <button onClick={() => { setTelaAtual('painel'); setMensagemSucesso(''); setMensagemErro(''); }} className="text-xs font-bold text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 transition-colors">
-                &larr; Voltar
-              </button>
+          {/* Busca & Ações de Live Update */}
+          <div className="flex items-center gap-4">
+            <div className="relative hidden md:block">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                <Search size={15} />
+              </span>
+              <input
+                type="text"
+                placeholder="Filtrar dados em tempo real..."
+                className="w-64 pl-9 pr-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all text-slate-300 placeholder-slate-600"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
 
-            <form onSubmit={gerenciarEmissao} className="space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Empresa Alvo</label>
-                  <select value={empresaId} onChange={(e) => setEmpresaId(e.target.value)} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none">
-                    {empresas.map((emp) => (
-                      <option key={emp.id} value={emp.id}>{emp.razao_social} (ID {emp.id})</option>
+            {/* Botão de Atualizar Dinâmico */}
+            <button 
+              onClick={triggerRefresh}
+              className="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 hover:text-cyan-400 transition-all active:scale-95 border border-slate-700/50"
+              title="Forçar Atualização"
+            >
+              <RefreshCw size={16} className={`${isRefreshing ? 'animate-spin text-cyan-400' : ''}`} />
+            </button>
+          </div>
+        </header>
+
+        {/* Corpo da Aplicação */}
+        <main className="p-6 md:p-8 flex-1 max-w-7xl w-full mx-auto space-y-8">
+          
+          {/* --- TAB: DASHBOARD --- */}
+          {activeTab === 'dashboard' && (
+            <>
+              {/* Grid Ultra Neon */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <MetricCard title="Alunos Atendidos" value="125" icon={Users} change="⚡ Status Online" type="success" />
+                <MetricCard title="Frota em Movimento" value="3 / 4" icon={Bus} change="🚌 1 em Oficina" type="warning" />
+                <MetricCard title="Ações Auditadas" value="01" icon={CheckCircle} change="✓ Inversão Concluída" type="default" />
+                <MetricCard title="Alertas de Risco" value="1" icon={AlertTriangle} change="⚠ Verificar Rota 02" type="danger" />
+              </div>
+
+              {/* Seções em Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Esquerda: Painel de Monitoramento */}
+                <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-xl relative overflow-hidden group">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-cyan-500 to-blue-500" />
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="font-extrabold text-white flex items-center gap-2 tracking-tight"><Zap size={18} className="text-cyan-400 animate-bounce" /> Telemetria da Frota</h3>
+                    <button onClick={() => setActiveTab('routes')} className="text-xs font-bold text-cyan-400 hover:text-cyan-300 hover:underline transition-colors">Painel Completo &rarr;</button>
+                  </div>
+                  <div className="space-y-3">
+                    {routes.slice(0, 3).map(route => (
+                      <div key={route.id} className="p-4 bg-slate-950/60 rounded-xl border border-slate-800/80 hover:border-slate-700 transition-all flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-bold text-slate-200">{route.name}</p>
+                          <p className="text-xs text-slate-500 font-medium">Condutor: {route.driver}</p>
+                        </div>
+                        <span className={`text-[11px] px-3 py-1 rounded-full font-bold uppercase tracking-wider ${
+                          route.status === 'Em Rota' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 
+                          route.status === 'Atrasado' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 
+                          'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        }`}>{route.status}</span>
+                      </div>
                     ))}
-                  </select>
+                  </div>
                 </div>
+
+                {/* Direita: Transparência Social */}
+                <div className="bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-xl relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 to-pink-500" />
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="font-extrabold text-white flex items-center gap-2 tracking-tight"><Bell size={18} className="text-purple-400" /> Linha do Tempo / Fiscal</h3>
+                    <button onClick={() => setActiveTab('fiscalization')} className="text-xs font-bold text-purple-400 hover:text-purple-300 hover:underline transition-colors">Auditar Todas &rarr;</button>
+                  </div>
+                  <div className="space-y-3">
+                    {actions.map(action => (
+                      <div key={action.id} className="p-4 bg-slate-950/60 rounded-xl border border-slate-800/80 hover:border-slate-700 transition-all flex items-center justify-between">
+                        <div className="truncate pr-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-mono font-black bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-0.5 rounded-md">{action.id}</span>
+                            <p className="text-sm font-bold text-slate-200 truncate">{action.title}</p>
+                          </div>
+                          <p className="text-xs text-slate-500 font-medium">{action.category} • {action.date}</p>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800 shrink-0">
+                          <Eye size={12} className="text-cyan-400" /> {action.views}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* --- TAB: ROTAS --- */}
+          {activeTab === 'routes' && (
+            <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden animate-fadeIn">
+              <div className="p-6 border-b border-slate-800 bg-gradient-to-r from-slate-900 to-slate-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Tipo de Licença</label>
-                  <select value={tipoLicenca} onChange={(e) => setTipoLicenca(e.target.value)} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none">
-                    <option value="LP">LP - Licença Prévia</option>
-                    <option value="LI">LI - Licença de Instalação</option>
-                    <option value="LO">LO - Licença de Operação</option>
-                  </select>
+                  <h3 className="font-black text-xl text-white tracking-tight">Monitor de Linhas Operacionais</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Visão unificada de tracking e contingências.</p>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Nº do Processo Administrativo</label>
-                  <input type="text" required placeholder="Ex: 4572/2026-SEMMA" value={numeroProcesso} onChange={(e) => setNumeroProcesso(e.target.value)} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none"/>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Prazo de Validade (Dias)</label>
-                  <input type="number" required value={diasValidade} onChange={(e) => setDiasValidade(e.target.value)} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none"/>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Parecer Técnico e Restrições Obras/Operação</label>
-                <textarea rows="6" required placeholder="Injete aqui os laudos, condicionantes, restrições..." value={conteudoTecnico} onChange={(e) => setConteudoTecnico(e.target.value)} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none font-mono"/>
-              </div>
-
-              {mensagemSucesso && <div className="text-green-700 text-xs font-semibold bg-green-50 p-3 rounded-lg border border-green-200 text-center">{mensagemSucesso}</div>}
-              {mensagemErro && <div className="text-red-700 text-xs font-semibold bg-red-50 p-3 rounded-lg border border-red-200 text-center">{mensagemErro}</div>}
-
-              <button type="submit" disabled={carregando} className="w-full py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-green-600 hover:bg-green-700 transition-all shadow-md disabled:bg-gray-400">
-                {carregando ? 'Processando Validações e Emitindo...' : 'Concluir Emissão e Assinar Documento'}
-              </button>
-            </form>
-          </div>
-        )}
-
-        {telaAtual === 'listar_empresas' && (
-          /* TELA 03: TABELA DE VISUALIZAÇÃO DE EMPRESAS */
-          <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-gray-800">Empresas Monitoradas Municipais</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Relação de CNPJs cadastrados na base de dados estruturada</p>
-              </div>
-              <div className="flex space-x-3">
-                <button onClick={() => { setTelaAtual('nova_empresa'); setMensagemSucesso(''); setMensagemErro(''); }} className="text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg px-3 py-1.5 transition-colors shadow-sm">
-                  + Cadastrar Empresa
-                </button>
-                <button onClick={() => { setTelaAtual('painel'); setMensagemSucesso(''); setMensagemErro(''); }} className="text-xs font-bold text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 transition-colors">
-                  &larr; Voltar
+                <button className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs uppercase tracking-wider px-5 py-3 rounded-xl transition-all shadow-lg shadow-cyan-500/20 flex items-center gap-2 active:scale-95">
+                  <MapPin size={15}/> Adicionar Nova Rota
                 </button>
               </div>
-            </div>
 
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 text-sm">
-                <thead className="bg-gray-50 font-bold text-gray-700 uppercase text-xs tracking-wider">
-                  <tr>
-                    <th className="px-6 py-3 text-left">ID</th>
-                    <th className="px-6 py-3 text-left">Razão Social</th>
-                    <th className="px-6 py-3 text-left">CNPJ Regulatório</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white text-gray-600">
-                  {empresas.map((emp) => (
-                    <tr key={emp.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 font-mono font-bold text-green-700">{emp.id}</td>
-                      <td className="px-6 py-4 font-semibold text-gray-800">{emp.razao_social}</td>
-                      <td className="px-6 py-4 font-mono">{emp.cnpj}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-800 bg-slate-950/80 text-slate-400 font-bold text-xs uppercase tracking-widest">
+                      <th className="p-4 pl-6">Linha / Rota</th>
+                      <th className="p-4">Motorista</th>
+                      <th className="p-4">Capacidade Ocupada</th>
+                      <th className="p-4">Janela de Atraso</th>
+                      <th className="p-4 text-center">Status Operacional</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {telaAtual === 'nova_empresa' && (
-          /* TELA 05: FORMULÁRIO DE CADASTRO DE NOVA EMPRESA */
-          <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200 max-w-md mx-auto">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-gray-800">Inclusão Cadastral Municipal</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Registre um novo estabelecimento para monitoramento</p>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800 text-sm font-medium text-slate-300">
+                    {filteredRoutes.length > 0 ? (filteredRoutes.map(route => (
+                      <tr key={route.id} className="hover:bg-slate-950/40 transition-colors group">
+                        <td className="p-4 pl-6 font-bold text-white group-hover:text-cyan-400 transition-colors">{route.name}</td>
+                        <td className="p-4 text-slate-400">{route.driver}</td>
+                        <td className="p-4"><span className="bg-slate-950 px-2.5 py-1 rounded-md text-xs font-mono text-slate-300 border border-slate-800">{route.students} alunos</span></td>
+                        <td className="p-4">
+                          {route.delay !== 'Nenhum' && route.delay !== '-' ? (
+                            <span className="text-amber-400 font-bold flex items-center gap-1.5"><Clock size={14}/> {route.delay}</span>
+                          ) : <span className="text-slate-600">{route.delay}</span>}
+                        </td>
+                        <td className="p-4 text-center">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                            route.status === 'Em Rota' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' : 
+                            route.status === 'Atrasado' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' : 
+                            route.status === 'Concluído' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' :
+                            'bg-slate-800 text-slate-400 border border-slate-700'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                              route.status === 'Em Rota' ? 'bg-blue-400' : 
+                              route.status === 'Atrasado' ? 'bg-amber-400' : 
+                              route.status === 'Concluído' ? 'bg-emerald-400' : 'bg-slate-500'
+                            }`} />
+                            {route.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))) : (
+                      <tr>
+                        <td colSpan="5" className="p-8 text-center text-slate-600 font-bold">Nenhum registro vivo encontrado.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
-              <button onClick={() => { setTelaAtual('listar_empresas'); setMensagemSucesso(''); setMensagemErro(''); }} className="text-xs font-bold text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 transition-colors">
-                &larr; Cancelar
-              </button>
             </div>
+          )}
 
-            <form onSubmit={gerenciarCadastroEmpresa} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Razão Social Corporativa</label>
-                <input type="text" required placeholder="Ex: Lava-Jato Daiane Ltda" value={novaRazao} onChange={(e) => setNovaRazao(e.target.value)} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none"/>
+          {/* --- TAB: FISCALIZAÇÃO --- */}
+          {activeTab === 'fiscalization' && (
+            <div className="space-y-6 animate-fadeIn">
+              
+              {/* Banner de Impacto */}
+              <div className="bg-gradient-to-r from-purple-900/60 via-indigo-950 to-slate-900 text-white p-6 rounded-2xl border border-purple-500/30 shadow-xl relative overflow-hidden">
+                <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl" />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                  <div className="space-y-1">
+                    <h3 className="font-black text-xl text-purple-300 tracking-tight">Portal Integrado de Transparência Social</h3>
+                    <p className="text-sm text-slate-400 max-w-2xl">
+                      Listagem cronológica espelhada. Dados auditáveis pela população com integridade de visualizações garantida pelo ecossistema MAZZ.
+                    </p>
+                  </div>
+                  <div className="bg-slate-950/80 border border-purple-500/20 rounded-xl p-3 text-center shadow-inner">
+                    <span className="text-[10px] uppercase tracking-widest block text-purple-400 font-black">Sequência Corrigida</span>
+                    <span className="text-xs font-mono font-bold text-emerald-400">Ação #01 &rarr; Ativa</span>
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">CNPJ Oficial</label>
-                <input type="text" required placeholder="Ex: 00.000.000/0001-00" value={novoCnpj} onChange={(e) => setNovoCnpj(e.target.value)} className="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm focus:border-green-500 focus:outline-none"/>
+
+              {/* Tabela de Ações */}
+              <div className="bg-slate-900 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden">
+                <div className="p-6 border-b border-slate-800 bg-gradient-to-r from-slate-900 to-slate-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-bold text-lg text-white">Eventos de Fiscalização Coletiva</h3>
+                    <p className="text-xs text-slate-500">Histórico público ordenado de forma limpa.</p>
+                  </div>
+                  <button className="bg-slate-800 hover:bg-slate-700 text-purple-400 hover:text-purple-300 font-bold text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl transition-colors border border-slate-700">
+                    + Inserir Entrada
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-800 bg-slate-950/80 text-slate-400 font-bold text-xs uppercase tracking-widest">
+                        <th className="p-4 pl-6 w-28">ID</th>
+                        <th className="p-4">Alvo da Auditoria</th>
+                        <th className="p-4">Segmento</th>
+                        <th className="p-4">Publicado Em</th>
+                        <th className="p-4">Engajamento Cívico</th>
+                        <th className="p-4 text-right pr-6">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800 text-sm font-medium text-slate-300">
+                      {filteredActions.length > 0 ? (filteredActions.map(action => (
+                        <tr key={action.id} className="hover:bg-slate-950/40 transition-colors group">
+                          <td className="p-4 pl-6 font-mono font-black text-purple-400">{action.id}</td>
+                          <td className="p-4 font-bold text-white max-w-xs md:max-w-md truncate group-hover:text-purple-300 transition-colors">{action.title}</td>
+                          <td className="p-4"><span className="bg-slate-950 px-2.5 py-1 rounded-md text-xs text-slate-400 border border-slate-800">{action.category}</span></td>
+                          <td className="p-4 text-slate-500">{action.date}</td>
+                          <td className="p-4">
+                            <span className="flex items-center gap-1.5 text-slate-300 font-semibold text-xs">
+                              <TrendingUp size={13} className="text-emerald-400"/>
+                              {action.views} acessos
+                            </span>
+                          </td>
+                          <td className="p-4 text-right pr-6">
+                            <span className={`inline-block px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider ${
+                              action.status === 'Concluído' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                              action.status === 'Em Andamento' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'bg-slate-800 text-slate-400'
+                            }`}>{action.status}</span>
+                          </td>
+                        </tr>
+                      ))) : (
+                        <tr>
+                          <td colSpan="6" className="p-8 text-center text-slate-700 font-bold">Nenhum evento registrado.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-
-              {mensagemSucesso && <div className="text-green-700 text-xs font-semibold bg-green-50 p-3 rounded-lg border border-green-200 text-center">{mensagemSucesso}</div>}
-              {mensagemErro && <div className="text-red-700 text-xs font-semibold bg-red-50 p-3 rounded-lg border border-red-200 text-center">{mensagemErro}</div>}
-
-              <button type="submit" disabled={carregando} className="w-full py-2.5 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-green-600 hover:bg-green-700 transition-all shadow-md disabled:bg-gray-400">
-                {carregando ? 'Salvando no Banco...' : 'Confirmar Registro no Sistema'}
-              </button>
-            </form>
-          </div>
-        )}
-
-        {telaAtual === 'auditoria' && (
-          /* TELA 04: TABELA DE CONTROLE DE AUDITORIA */
-          <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-200">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-gray-800">Trilha Imutável de Auditoria (RBAC)</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Histórico completo de segurança regulatória do município</p>
-              </div>
-              <button onClick={() => { setTelaAtual('painel'); setMensagemSucesso(''); setMensagemErro(''); }} className="text-xs font-bold text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg px-3 py-1.5 transition-colors">
-                &larr; Voltar
-              </button>
             </div>
+          )}
 
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 text-sm">
-                <thead className="bg-gray-50 font-bold text-gray-700 uppercase text-xs tracking-wider">
-                  <tr>
-                    <th className="px-6 py-3 text-left">ID Log</th>
-                    <th className="px-6 py-3 text-left">Utilizador</th>
-                    <th className="px-6 py-3 text-left">Operação</th>
-                    <th className="px-6 py-3 text-left">Alvo Modificado</th>
-                    <th className="px-6 py-3 text-left">Data/Hora Registo</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white text-gray-600">
-                  {logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 font-mono text-gray-400">#{log.id}</td>
-                      <td className="px-6 py-4 font-bold text-gray-800">{log.usuario}</td>
-                      <td className="px-6 py-4">
-                        <span className="inline-block px-2.5 py-1 rounded-full text-xs font-extrabold bg-blue-50 text-blue-700 border border-blue-100">
-                          {log.acao}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-xs font-semibold text-gray-500">
-                        {log.tabela_afetada} (Ref-ID: {log.registro_id})
-                      </td>
-                      <td className="px-6 py-4 font-mono text-xs">{new Date(log.data_registro).toLocaleString('pt-PT')}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-      </main>
-
-      {/* Rodapé */}
-      <footer className="w-full text-center py-6 text-gray-400 text-xs font-bold tracking-widest uppercase border-t border-gray-200 mt-20 bg-white">
-        Homologação Local — Desenvolvido por RAZGO
-      </footer>
+        </main>
+      </div>
     </div>
   );
 }
