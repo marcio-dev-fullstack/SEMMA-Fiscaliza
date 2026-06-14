@@ -1,0 +1,11 @@
+# Front-end
+front/node_modules/
+front/dist/
+.env
+
+# Back-end
+back/__pycache__/
+back/uploads/
+
+# OS
+.DS_Store
